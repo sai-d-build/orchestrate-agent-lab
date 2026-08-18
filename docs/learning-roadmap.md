@@ -2,35 +2,54 @@
 
 ## Phase 0 — Foundation
 
-- Python project structure
-- LLM API fundamentals
-- environment variables and secrets
+- LLM APIs
 - Pydantic
 - structured outputs
+- environment variables
 - testing
-- Git/GitHub workflow
-- cloud/browser development
+- Git/GitHub
 
-## Phase 1 — RAG
+## Phase 1 — Retrieval
 
-Keyword search → BM25 → embeddings → vector search → metadata filtering → hybrid retrieval → reranking → evaluation.
+- keyword search
+- BM25
+- embeddings
+- vector retrieval
+- metadata filtering
+- hybrid retrieval
+- reranking
+- retrieval evaluation
 
-## Phase 2 — Agent Engineering
+## Phase 2 — Agents
 
-Tool calling → tool schemas → validation → permissions → agent loop → state → failure handling.
+- tool calling
+- agent loop
+- tool validation
+- state
+- smolagents
+- LangChain
+- LangGraph
 
 ## Phase 3 — Reliability
 
-Guardrails → prompt-injection defense → evidence validation → confidence → fallback → observability → cost tracking.
+- guardrails
+- prompt injection defense
+- evidence validation
+- confidence
+- fallbacks
+- observability
+- cost/latency
 
-## Phase 4 — Evaluation
+## Phase 4 — Multimodal
 
-Correctness, precision, recall, F1, retrieval recall, evidence quality, hallucination, invalid output, tool-call accuracy, latency, cost, and failure rate.
+- vision
+- OCR
+- audio
+- modality routing
 
-## Phase 5 — Multimodal + Orchestrate
+## Phase 5 — Orchestrate Practice
 
-Text/image/audio routing and historical Orchestrate challenges.
-
-## Phase 6 — Hackathon Simulation
-
-4-hour, 12-hour, and 24-hour timed simulations followed by postmortems and AI-judge interview practice.
+- historical challenges
+- timed simulations
+- postmortems
+- interview preparation

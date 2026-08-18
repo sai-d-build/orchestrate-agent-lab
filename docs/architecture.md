@@ -1,23 +1,11 @@
 # Architecture
 
-## Phase 0 architecture
+The lab starts intentionally small and expands as capabilities are learned and validated.
+
+Initial progression:
 
 ```text
-User Input
-    ↓
-Python application
-    ↓
-LLM API (future Phase 0 implementation)
-    ↓
-Structured Output
-    ↓
-Pydantic Validation
-    ↓
-Final Response
+LLM API → Pydantic/structured output → retrieval → evaluation → guardrails → agents → multimodal
 ```
 
-The repository starts intentionally small. We will add retrieval, tools, agents, multimodal processing, guardrails, and evaluation incrementally.
-
-## Architecture principle
-
-Use the simplest architecture that reliably solves the problem. Prefer deterministic code over an LLM when deterministic code is the better tool.
+Frameworks such as smolagents, LangChain, and LangGraph are introduced only after the underlying concepts are understood.
