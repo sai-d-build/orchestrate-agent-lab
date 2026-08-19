@@ -1,0 +1,88 @@
+# Model registry.
+#
+# API keys are NEVER stored here.
+# api_key_env points to the environment variable containing the secret.
+
+models:
+
+  openrouter-free:
+    provider: openrouter
+    model: nvidia/nemotron-3.5-lightning:free
+
+    api_key_env: OPENROUTER_API_KEY
+
+    parameters:
+      temperature: 0.2
+      max_tokens: 300
+      reasoning: true
+
+    provider_policy:
+      data_collection: deny
+      zdr: true
+      allow_fallbacks: false
+
+    purpose: learning
+    capabilities:
+      - text
+      - reasoning
+      - tool_calling
+
+  gemini-fast:
+    provider: gemini
+    model: gemini-3.1-flash-lite
+    api_key_env: GEMINI_API_KEY
+    purpose: fast
+    capabilities:
+      - text
+      - structured_output
+      - multimodal
+
+  openai-default:
+    provider: openai
+    model: CHANGE_ME
+    api_key_env: OPENAI_API_KEY
+    purpose: general
+    capabilities:
+      - text
+      - structured_output
+      - tool_calling
+
+  anthropic-default:
+    provider: anthropic
+    model: CHANGE_ME
+    api_key_env: ANTHROPIC_API_KEY
+    purpose: reasoning
+    capabilities:
+      - text
+      - structured_output
+      - tool_calling
+
+  groq-fast:
+    provider: groq
+    model: CHANGE_ME
+    api_key_env: GROQ_API_KEY
+    purpose: fast
+    capabilities:
+      - text
+      - structured_output
+      - tool_calling
+
+  mistral-default:
+    provider: mistral
+    model: CHANGE_ME
+    api_key_env: MISTRAL_API_KEY
+    purpose: general
+    capabilities:
+      - text
+      - structured_output
+      - tool_calling
+
+  openrouter-default:
+    provider: openrouter
+    model: CHANGE_ME
+    api_key_env: OPENROUTER_API_KEY
+    purpose: general
+    capabilities:
+      - text
+      - structured_output
+      - tool_calling

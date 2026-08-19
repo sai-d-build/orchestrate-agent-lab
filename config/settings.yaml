@@ -1,0 +1,19 @@
+# Application-level configuration.
+# Secrets do not belong here.
+
+application:
+  name: orchestrate-agent-lab
+  environment: development
+  log_level: INFO
+
+llm:
+  timeout_seconds: 60
+  max_retries: 2
+
+evaluation:
+  enabled: true
+
+observability:
+  enabled: true
+  log_prompts: false
+  log_responses: false
