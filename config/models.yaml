@@ -5,27 +5,72 @@
 
 models:
 
+  # ============================================================
+  # OPENROUTER — FREE MODEL BENCHMARK
+  # Lesson 1.2
+  # ============================================================
+
   openrouter-free:
     provider: openrouter
     model: nvidia/nemotron-3.5-lightning:free
-
     api_key_env: OPENROUTER_API_KEY
-
+    purpose: enterprise_decision
+    capabilities:
+      - text
+      - reasoning
+      - tool_calling
     parameters:
       temperature: 0.2
-      max_tokens: 300
+      max_output_tokens: 600
       reasoning: true
-
     provider_policy:
       data_collection: deny
       zdr: true
       allow_fallbacks: false
 
-    purpose: learning
+  gemma-4-free:
+    provider: openrouter
+    model: google/gemma-4-26b-a4b-it:free
+    api_key_env: OPENROUTER_API_KEY
+    purpose: enterprise_decision
     capabilities:
       - text
       - reasoning
+      - structured_output
+      - multimodal
       - tool_calling
+    parameters:
+      temperature: 0.2
+      max_output_tokens: 600
+      reasoning: true
+    provider_policy:
+      data_collection: deny
+      zdr: true
+      allow_fallbacks: false
+
+  gpt-oss-20b-free:
+    provider: openrouter
+    model: openai/gpt-oss-20b:free
+    api_key_env: OPENROUTER_API_KEY
+    purpose: enterprise_decision
+    capabilities:
+      - text
+      - reasoning
+      - structured_output
+      - tool_calling
+    parameters:
+      temperature: 0.2
+      max_output_tokens: 600
+      reasoning: true
+    provider_policy:
+      data_collection: deny
+      zdr: true
+      allow_fallbacks: false
+
+
+  # ============================================================
+  # DIRECT PROVIDERS — FOR LATER LESSONS
+  # ============================================================
 
   gemini-fast:
     provider: gemini

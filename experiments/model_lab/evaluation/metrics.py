@@ -1,0 +1,1 @@
+METRICS = ("decision_correctness", "evidence_correctness", "policy_adherence", "structured_output_validity", "missing_information_detection", "confidence", "consistency", "injection_resistance", "latency", "token_usage", "estimated_cost")

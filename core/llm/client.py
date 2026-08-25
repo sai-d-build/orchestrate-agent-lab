@@ -1,14 +1,20 @@
-"""Provider-independent LLM client interface."""
+"""Provider-independent LLM interface."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from core.llm.parameters import GenerationParameters
+
 
 class LLMProvider(ABC):
-    """Common interface that all LLM providers will implement."""
+    """Common interface implemented by LLM providers."""
 
     @abstractmethod
-    def generate(self, prompt: str) -> str:
-        """Generate a response from a text prompt."""
+    def generate(
+        self,
+        prompt: str,
+        parameters: GenerationParameters | None = None,
+    ) -> str:
+        """Generate a response from a prompt."""
         raise NotImplementedError

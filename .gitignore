@@ -24,3 +24,6 @@ htmlcov/
 
 # OS files
 .DS_Store
+tests/.DS_Store
+tests/.DS_Store
+core/.DS_Store

@@ -1,0 +1,32 @@
+version: 1
+
+profiles:
+  - openrouter-free
+  - gemma-4-free
+  - gpt-oss-20b-free
+
+runs_per_case: 3
+
+parameters:
+  temperature:
+    - 0.0
+    - 0.2
+
+  reasoning:
+    - false
+    - true
+
+  max_output_tokens:
+    - 300
+    - 600
+
+provider_policy:
+  data_collection: deny
+  zdr: true
+  allow_fallbacks: false
+
+notes:
+  - Same prompt and dataset for every model.
+  - Pin model IDs for reproducibility.
+  - Only use parameter combinations supported by the selected model.
+  - Do not use real customer, employee, financial, or confidential data.
