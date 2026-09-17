@@ -60,12 +60,12 @@ Calculation check: <brief explanation>
     print(f"\nPrompt: {prompt}")
 
     try:
-        answer = provider.generate(prompt)
+        response = provider.generate(prompt)
     except Exception as exc:
         print(f"\nAPI request failed: {exc}")
         sys.exit(1)
 
-    print(f"\nAnswer:\n{answer}")
+    print(f"\nAnswer:\n{response.content}")
 
 
 if __name__ == "__main__":
