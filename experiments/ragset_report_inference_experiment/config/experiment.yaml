@@ -1,0 +1,27 @@
+source:
+  path: train.csv
+  id_column: StudyInstanceUID
+  report_column: Report
+
+gold:
+  require_all_labels_populated: true
+
+retrieval:
+  enabled: true
+  method: tfidf
+  top_k: 8
+
+models:
+  inference_profile: nvidia-ragset-inference
+  validator_profile: nvidia-ragset-validator
+  temperature: 0
+
+loop:
+  max_attempts: 3
+
+validation:
+  require_validator_pass: true
+
+runtime:
+  output_dir: experiments/ragset_report_inference_experiment
+  save_model_trace: true

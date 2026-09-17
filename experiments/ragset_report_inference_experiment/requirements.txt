@@ -1,0 +1,6 @@
+pandas>=2.2
+pydantic>=2.8
+pyyaml>=6.0
+scikit-learn>=1.5
+openai>=1.100
+pytest>=8.0
