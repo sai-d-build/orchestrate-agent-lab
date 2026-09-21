@@ -12,8 +12,12 @@ retrieval:
   top_k: 8
 
 models:
-  inference_profile: nvidia-ragset-inference
-  validator_profile: nvidia-ragset-validator
+  inference_profiles:
+    - nvidia-ragset-inference
+    - nvidia-ragset-inference-usf
+  validator_profiles:
+    - nvidia-ragset-validator
+    - nvidia-ragset-validator-usf
   gold_analysis_profile: nvidia-ragset-gold-analysis
   temperature: 0
 

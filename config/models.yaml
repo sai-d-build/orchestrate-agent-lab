@@ -70,6 +70,43 @@ models:
       zdr: true
       allow_fallbacks: false
 
+  # USF API key variants for parallel inference
+  nvidia-ragset-inference-usf:
+    provider: nvidia
+    model: nvidia/nemotron-3-ultra-550b-a55b
+    api_key_env: NVIDIA_API_KEY_USF
+    purpose: ragset_report_inference
+    capabilities:
+      - text
+      - reasoning
+      - structured_output
+    parameters:
+      temperature: 0
+      max_output_tokens: 32000
+      reasoning: false
+    provider_policy:
+      data_collection: deny
+      zdr: true
+      allow_fallbacks: false
+
+  nvidia-ragset-validator-usf:
+    provider: nvidia
+    model: nvidia/nemotron-3-ultra-550b-a55b
+    api_key_env: NVIDIA_API_KEY_USF
+    purpose: ragset_report_validation
+    capabilities:
+      - text
+      - reasoning
+      - structured_output
+    parameters:
+      temperature: 0
+      max_output_tokens: 20000
+      reasoning: false
+    provider_policy:
+      data_collection: deny
+      zdr: true
+      allow_fallbacks: false
+
   # ============================================================
   # OPENROUTER — FREE MODEL BENCHMARK (fallback)
   # Lesson 1.2
