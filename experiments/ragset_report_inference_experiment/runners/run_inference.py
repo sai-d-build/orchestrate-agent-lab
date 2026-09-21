@@ -22,38 +22,39 @@ from experiments.ragset_report_inference_experiment.src.ragset_inference.evaluat
 from experiments.ragset_report_inference_experiment.src.ragset_inference.trace import write_trace
 
 
-def make_infer_fn(model, inf_cfg, trace_path, labels, gold_analysis, gold_examples):
-    """Factory that creates an infer closure with captured dependencies."""
+def make_infer_fn(model, inf_cfg, trace_path, labels, gold_analysis):
+    """Factory that creates an infer closure with captured dependencies.
+
+    gold_examples is now passed per-call via kwargs to ensure target-specific
+    retrieval context is used.
+    """
 
     def infer_fn(**kwargs):
-        user = inf_cfg["user_template"].format(
-            report=kwargs["report"],
-            labels="\n".join(labels),
+        user = inf_cfg["user_prompt_template"].format(
+            original_report=kwargs["report"],
             gold_analysis=gold_analysis,
-            gold_examples=gold_examples,
-            previous_prediction=(
-                kwargs["previous_prediction"].model_dump_json()
-                if kwargs["previous_prediction"] else "None"
-            ),
-            validator_feedback=json.dumps(
-                kwargs["validator_feedback"], ensure_ascii=False
-            ) if kwargs["validator_feedback"] else "None",
+            retrieved_gold_examples=kwargs.get("gold_examples", ""),
         )
         report_id = kwargs["report_id"]
+        # Extract validator_feedback for retry awareness (NOT as evidence)
+        validator_feedback = kwargs.get("validator_feedback")
         try:
-            prediction = model.run(inf_cfg["system"], user)
+            prediction = model.run(inf_cfg["system_prompt"], user, validator_feedback=validator_feedback)
+            # Get actual model from response if available (OpenRouter returns routed model)
+            actual_model = getattr(model, 'last_actual_model', model.model)
             write_trace(
                 trace_path, report_id=report_id, stage="inference",
                 model=model.model, attempt=kwargs["attempt"],
-                prompt=inf_cfg["system"] + "\n" + user, status="success",
+                prompt=inf_cfg["system_prompt"] + "\n" + user, status="success",
+                provider=model.provider, actual_model=actual_model,
             )
             return prediction
         except Exception as e:
             write_trace(
                 trace_path, report_id=report_id, stage="inference",
                 model=model.model, attempt=kwargs["attempt"],
-                prompt=inf_cfg["system"] + "\n" + user, status="error",
-                error=str(e),
+                prompt=inf_cfg["system_prompt"] + "\n" + user, status="error",
+                provider=model.provider, error=str(e),
             )
             raise
 
@@ -64,27 +65,29 @@ def make_validate_fn(model, val_cfg, trace_path, labels, gold_analysis):
     """Factory that creates a validate closure with captured dependencies."""
 
     def validate_fn(**kwargs):
-        user = val_cfg["user_template"].format(
-            report=kwargs["report"],
-            labels="\n".join(labels),
+        user = val_cfg["user_prompt_template"].format(
+            original_report=kwargs["report"],
             gold_analysis=gold_analysis,
-            prediction=kwargs["prediction"].model_dump_json(),
+            model_1_prediction=kwargs["prediction"].model_dump_json(),
+            retrieved_gold_examples="",
         )
         report_id = kwargs["report_id"]
         try:
-            validation = model.run(val_cfg["system"], user)
+            validation = model.run(val_cfg["system_prompt"], user)
+            actual_model = getattr(model, 'last_actual_model', model.model)
             write_trace(
                 trace_path, report_id=report_id, stage="validation",
                 model=model.model, attempt=kwargs["attempt"],
-                prompt=val_cfg["system"] + "\n" + user, status="success",
+                prompt=val_cfg["system_prompt"] + "\n" + user, status="success",
+                provider=model.provider, actual_model=actual_model,
             )
             return validation
         except Exception as e:
             write_trace(
                 trace_path, report_id=report_id, stage="validation",
                 model=model.model, attempt=kwargs["attempt"],
-                prompt=val_cfg["system"] + "\n" + user, status="error",
-                error=str(e),
+                prompt=val_cfg["system_prompt"] + "\n" + user, status="error",
+                provider=model.provider, error=str(e),
             )
             raise
 
@@ -115,7 +118,7 @@ def run_heldout_evaluation(
             "gold_analysis": label_profile_text(analysis),
             "gold_examples": relevant,
         }
-        infer_fn = make_infer_fn(model1, inf_cfg, trace_path, labels, context["gold_analysis"], context["gold_examples"])
+        infer_fn = make_infer_fn(model1, inf_cfg, trace_path, labels, context["gold_analysis"])
         validate_fn = make_validate_fn(model2, val_cfg, trace_path, labels, context["gold_analysis"])
         result = run_report(
             report_id=report_id,
@@ -127,10 +130,18 @@ def run_heldout_evaluation(
             labels=labels,
         )
         pred = result["final_prediction"]
+        # Extract inferred evidence from final prediction
+        inferred_evidence = {
+            label: pred.predictions[label].evidence
+            for label in pred.predictions
+            if pred.predictions[label].evidence
+        }
         predictions.append({
-            "StudyInstanceUID": pred.study_instance_uid,
+            "StudyInstanceUID": result["report_id"],
             **pred.to_dict(),
             "Report": report,
+            "original_report": report,
+            "inferred_evidence": inferred_evidence,
         })
 
     pred_df = type(heldout_df)(predictions)
@@ -166,7 +177,7 @@ def append_prediction(result_path: Path, serializable: dict):
         f.write(json.dumps(serializable, ensure_ascii=False) + "\n")
 
 
-def main(limit: int | None = None, resume: bool = False, overwrite: bool = False):
+def main(limit: int | None = None, resume: bool = False, overwrite: bool = False, retry_review: bool = False):
     root = Path(__file__).resolve().parents[3]
     exp = root / "experiments/ragset_report_inference_experiment"
 
@@ -277,7 +288,7 @@ def main(limit: int | None = None, resume: bool = False, overwrite: bool = False
     result_path.parent.mkdir(parents=True, exist_ok=True)
     trace_path.parent.mkdir(parents=True, exist_ok=True)
 
-    infer_fn = make_infer_fn(model1, inf_cfg, trace_path, labels, label_profile_text(analysis), gold_examples)
+    infer_fn = make_infer_fn(model1, inf_cfg, trace_path, labels, label_profile_text(analysis))
     validate_fn = make_validate_fn(model2, val_cfg, trace_path, labels, label_profile_text(analysis))
 
     processed_count = 0
@@ -286,11 +297,32 @@ def main(limit: int | None = None, resume: bool = False, overwrite: bool = False
         report = str(row["Report"])
 
         # Skip if already processed (resume mode)
+        # By default, skip all previously processed reports (including needs_review)
+        # Use --retry-review to explicitly retry needs_review cases
         if resume and report_id in processed_ids:
-            print(f"  Skipping {report_id} (already processed)")
-            continue
+            # Check if this is a needs_review case and we're retrying reviews
+            record_status = None
+            if result_path.exists():
+                with result_path.open("r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            record = json.loads(line)
+                            if record.get("report_id") == report_id:
+                                record_status = record.get("status")
+                                break
+                        except json.JSONDecodeError:
+                            continue
+            
+            if record_status == "needs_review" and getattr(args, 'retry_review', False):
+                print(f"  Retrying {report_id} (needs_review)")
+            else:
+                print(f"  Skipping {report_id} (already processed, status: {record_status})")
+                continue
 
-        if limit is not None and len(processed_ids) + processed_count >= limit:
+        if limit is not None and processed_count >= limit:
             break
 
         report_id = str(row["StudyInstanceUID"])
@@ -318,10 +350,18 @@ def main(limit: int | None = None, resume: bool = False, overwrite: bool = False
         )
 
         pred = result["final_prediction"]
+        # Extract inferred evidence from final prediction
+        inferred_evidence = {
+            label: pred.predictions[label].evidence
+            for label in pred.predictions
+            if pred.predictions[label].evidence
+        }
         serializable = {
             "report_id": result["report_id"],
             "status": result["status"],
             "review_reason": result["review_reason"],
+            "original_report": report,
+            "inferred_evidence": inferred_evidence,
             "attempts": [
                 {
                     "attempt": a.number,
@@ -358,12 +398,17 @@ if __name__ == "__main__":
         nargs="?",
         type=int,
         default=None,
-        help="Maximum number of reports to process (default: all)",
+        help="Maximum number of NEW reports to process in this invocation (default: all)",
     )
     parser.add_argument(
         "--resume",
         action="store_true",
         help="Resume from existing predictions.jsonl, skipping already-processed reports",
+    )
+    parser.add_argument(
+        "--retry-review",
+        action="store_true",
+        help="With --resume, retry reports that previously ended in needs_review status",
     )
     parser.add_argument(
         "--overwrite",
@@ -372,4 +417,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    main(limit=args.limit, resume=args.resume, overwrite=args.overwrite)
+    main(limit=args.limit, resume=args.resume, overwrite=args.overwrite, retry_review=args.retry_review)

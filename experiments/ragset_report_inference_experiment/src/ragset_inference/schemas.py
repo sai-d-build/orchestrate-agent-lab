@@ -21,12 +21,8 @@ class LabelValue(BaseModel):
     value: Literal[0, 1]
     evidence: str | None = None
 
-    @field_validator("evidence", mode="before")
-    @classmethod
-    def _coerce_evidence(cls, v):
-        if v is None:
-            return ""
-        return v
+    # Do NOT coerce null to empty string - null evidence must remain null
+    # Per rules: "If no suitable evidence exists: evidence: null"
 
 
 class ReportPrediction(BaseModel):

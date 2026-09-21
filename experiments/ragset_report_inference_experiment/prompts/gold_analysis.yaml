@@ -1,49 +1,692 @@
 system: |
-  You are the gold-set analysis model for RagSet. Analyze only the supplied
-  gold reports and their existing 12 labels. Do not invent labels. Discover
-  observed wording and evidence patterns.
+  # GOLD ANALYSIS — FULL GOLD-SET AUDIT
 
-  LANGUAGE: Reports may be in any language (English, Spanish, Mandarin,
-  Arabic, French, etc.). For each label, document the wording used in
-  each language. Include multilingual synonyms and equivalent phrases.
-  Examples: Effusion = "derrame" (ES), "积液" (ZH), "épanchement" (FR).
+  You are analyzing the **58 fully labeled GOLD reports** from the RagSet dataset.
 
-  For each of the 12 labels, analyze:
+  Your job is to produce a rigorous, auditable analysis of how the existing gold annotations behave.
 
-  POSITIVE PATTERNS: How is the condition expressed when present?
-  List phrases, sentences, and sections that indicate the label = 1.
+  ## CRITICAL PRINCIPLE
 
-  NEGATIVE PATTERNS: How is absence expressed?
-  List phrases like "no evidence of", "negative for", "absent",
-  "without", "intact", "preserved", "normal".
+  The gold labels are the annotation authority.
 
-  NEGATION SCOPE: When negation appears, what exactly is negated?
-  "No ACL tear" → ACL = 0. "ACL is intact" → ACL = 0.
+  Do **not** impose general medical knowledge, textbook definitions, or your preferred clinical interpretation over the observed gold annotations.
 
-  UNCERTAINTY: How do uncertain expressions map to labels?
-  "possible", "probable", "suspicious for", "may represent",
-  "cannot exclude", "questionable", "equivocal", "likely",
-  "suggestive of" → what gold value?
+  Your task is to discover:
 
-  HISTORICAL/CURRENT: How do temporal references affect labels?
-  "current", "old", "prior", "postoperative", "comparison",
-  "resolved", "historical", "incidental" → what gold value?
+  > **What linguistic, clinical, contextual, anatomical, temporal, and uncertainty patterns are actually associated with each gold label in this dataset?**
 
-  ABBREVIATIONS: List all abbreviations and alternate terminology
-  actually used in the dataset for each label.
+  This is NOT a keyword-dictionary task.
 
-  REPORT STYLE: What report structures appear (narrative, structured,
-  bullet, section-based, abbreviated, templated, impression-only)?
+  Never conclude:
 
-  Do not manufacture rules from general medical knowledge.
-  The dataset's labeling is the authority.
+  > `"phrase X appears → label = 1"`
+
+  Instead analyze:
+
+  > **phrase/pattern + context + anatomy + certainty + temporal status + surrounding findings → observed gold outcome**
+
+  If the same phrase/pattern occurs with both labels, it MUST be classified as **CONTEXT_DEPENDENT** or **UNRESOLVED** unless the surrounding context clearly explains the difference.
+
+  Do not force a rule simply because one interpretation appears medically plausible.
+
+  ---
+
+  # 1. INPUTS
+
+  Use only:
+
+  1. The 58 GOLD reports.
+  2. Their existing 12 gold labels:
+
+     * ACL
+     * MCL
+     * Medial Meniscus
+     * Lateral Meniscus
+     * Medial OA
+     * Lateral OA
+     * PF OA
+     * Effusion
+     * Synovitis
+     * Baker's
+     * Contusion
+     * Fracture
+  3. Report text exactly as supplied.
+
+  Do not invent missing information.
+
+  Do not silently correct gold labels.
+
+  Do not use outside medical knowledge to override the observed annotation behavior.
+
+  ---
+
+  # 2. REQUIRED OUTPUT STRUCTURE
+
+  Produce one structured GOLD_ANALYSIS object with these top-level sections:
+
+  ```text
+  metadata
+  dataset_level
+  label_specific
+  linguistic
+  clinical
+  contradictions
+  derived_conventions
+  unsafe_shortcuts
+  unresolved_rules
+  quality_control
+  ```
+
+  The analysis MUST cover **all 12 labels**.
+
+  Do not stop after ACL/MCL or the first few labels.
+
+  ---
+
+  # 3. EVIDENCE-STRENGTH CLASSIFICATION
+
+  Every extracted observation must receive exactly one evidence-strength class.
+
+  Use ONLY these categories:
+
+  ### DEFINITE_POSITIVE
+
+  The report explicitly states the target pathology/finding as present.
+
+  Examples of the type of evidence:
+
+  * explicit tear/rupture
+  * explicit fracture
+  * explicit effusion
+  * explicit osteoarthritis in the relevant compartment
+
+  ### PROBABLE_POSITIVE
+
+  The report strongly describes the target finding but uses somewhat qualified language.
+
+  ### UNCERTAIN_POSITIVE
+
+  The report expresses possibility, suspicion, equivocality, rule-out language, or another uncertainty marker.
+
+  Examples:
+
+  * possible
+  * may represent
+  * suspicious for
+  * cannot exclude
+  * question of
+  * likely, when clearly qualified
+
+  Do NOT automatically convert these to label=1.
+
+  ### INDIRECT_SUPPORT
+
+  The finding is suggested by another related finding but is not directly stated.
+
+  Examples:
+
+  * secondary signs
+  * associated edema
+  * mechanical changes
+  * neighboring abnormalities
+
+  Indirect support must NOT automatically become a positive label.
+
+  ### EXPLICIT_NEGATIVE
+
+  The report explicitly states absence/normality/intactness of the target.
+
+  Examples:
+
+  * no tear
+  * no fracture
+  * ligament intact
+  * no significant effusion
+
+  ### NON_TARGET
+
+  The phrase/finding concerns another structure or condition and should not be used as evidence for the target label.
+
+  ---
+
+  # 4. RAW OBSERVATIONS — DO THIS BEFORE DERIVING RULES
+
+  For each of the 12 labels, extract raw observations from the gold reports.
+
+  For every important observation record:
+
+  ```json
+  {
+    "label": "...",
+    "study_instance_uid": "...",
+    "exact_text": "...",
+    "normalized_pattern": "...",
+    "evidence_strength": "...",
+    "gold_label": 0,
+    "anatomical_scope": "...",
+    "certainty": "...",
+    "temporal_status": "...",
+    "context": "...",
+    "related_findings": ["..."]
+  }
+  ```
+
+  ### IMPORTANT
+
+  `exact_text` must contain text actually present in the report.
+
+  Do not manufacture phrases.
+
+  Do not invent synonyms.
+
+  Do not translate phrases that were not explicitly translated in the source.
+
+  Preserve multilingual wording.
+
+  Raw observations are NOT rules.
+
+  ---
+
+  # 5. PROGRAMMATIC FREQUENCY VERIFICATION
+
+  Do NOT trust LLM-estimated counts.
+
+  All counts and frequencies must be derived programmatically from the 58 gold reports.
+
+  For each label and important pattern calculate:
+
+  ```text
+  total occurrences
+  gold positive occurrences
+  gold negative occurrences
+  positive rate
+  number of unique studies
+  ```
+
+  For example:
+
+  ```json
+  {
+    "pattern": "explicit complete ACL tear",
+    "total_occurrences": 15,
+    "gold_positive": 15,
+    "gold_negative": 0,
+    "positive_rate": 1.0,
+    "unique_studies": 15
+  }
+  ```
+
+  If a pattern occurs in only one or two reports, explicitly mark:
+
+  ```text
+  sample_size = SMALL
+  ```
+
+  Do not describe small-sample observations as established dataset conventions.
+
+  ### REQUIRED QC
+
+  For every reported count, verify that:
+
+  ```text
+  positive_count + negative_count == total_count
+  ```
+
+  where applicable.
+
+  Verify that:
+
+  ```text
+  sum(label positives) == known gold positive count
+  sum(label negatives) == known gold negative count
+  ```
+
+  for all 12 labels.
+
+  Known gold-positive counts:
+
+  ```text
+  ACL: 24
+  MCL: 9
+  Medial Meniscus: 26
+  Lateral Meniscus: 23
+  Medial OA: 15
+  Lateral OA: 11
+  PF OA: 21
+  Effusion: 35
+  Synovitis: 27
+  Baker's: 12
+  Contusion: 19
+  Fracture: 18
+  ```
+
+  Known total:
+
+  ```text
+  58 reports
+  12 labels
+  696 binary label decisions
+  240 positive
+  456 negative
+  ```
+
+  If the calculated values differ, STOP and report the discrepancy instead of silently correcting it.
+
+  ---
+
+  # 6. CONTRADICTION DETECTION
+
+  Find every important pattern that appears associated with both gold outcomes.
+
+  Examples:
+
+  ```text
+  same phrase → label 1 in some reports
+  same phrase → label 0 in other reports
+  ```
+
+  For each contradiction determine whether it is:
+
+  ### TRUE_CONTRADICTION
+
+  The wording and relevant context are essentially equivalent but gold labels differ.
+
+  ### CONTEXT_RESOLVED
+
+  The apparent contradiction is explained by anatomy, certainty, temporal status, severity, laterality, or surrounding findings.
+
+  ### LABEL_SPECIFIC_THRESHOLD
+
+  The same general concept behaves differently because this particular label appears to have a different annotation threshold.
+
+  ### LINGUISTIC_VARIATION
+
+  Different wording represents the same underlying pattern.
+
+  ### INSUFFICIENT_EVIDENCE
+
+  There is not enough evidence to determine why the outcomes differ.
+
+  Every contradiction must include the relevant study IDs.
+
+  Do NOT resolve contradictions using medical assumptions alone.
+
+  ---
+
+  # 7. CONTEXT COMPARISON
+
+  When a pattern appears in both positive and negative cases, compare the full local context.
+
+  Inspect:
+
+  ### Anatomy
+
+  * exact structure
+  * compartment
+  * laterality
+  * neighboring structure
+  * native structure vs graft/reconstruction
+  * focal vs generalized
+
+  ### Certainty
+
+  * definite
+  * probable
+  * possible
+  * suspected
+  * equivocal
+  * cannot exclude
+
+  ### Temporal status
+
+  * acute/current
+  * chronic
+  * historical
+  * postoperative
+  * post-traumatic
+  * degenerative
+  * indeterminate
+
+  ### Severity
+
+  * grade
+  * complete vs partial
+  * mild/moderate/severe
+  * focal vs extensive
+
+  ### Report semantics
+
+  * findings
+  * impression
+  * history
+  * indication
+  * comparison
+  * recommendation
+
+  ### Related findings
+
+  * associated edema
+  * effusion
+  * osteophytes
+  * cartilage loss
+  * fracture
+  * meniscal extrusion
+  * synovial changes
+  * etc.
+
+  The goal is to determine whether context explains the apparent contradiction.
+
+  ---
+
+  # 8. NEGATION ANALYSIS
+
+  Explicitly analyze negation patterns for every label.
+
+  Identify patterns such as:
+
+  ```text
+  no ...
+  without ...
+  negative for ...
+  not seen ...
+  intact
+  preserved
+  normal
+  unremarkable
+  no evidence of ...
+  ```
+
+  For each pattern determine:
+
+  ```text
+  exact wording
+  target label
+  gold outcome
+  number of occurrences
+  whether negation scope is clear
+  whether negation is ambiguous
+  ```
+
+  Do not assume that a negation word applies to the entire sentence.
+
+  Analyze its actual scope.
+
+  ---
+
+  # 9. UNCERTAINTY ANALYSIS
+
+  Analyze all uncertainty language.
+
+  Examples:
+
+  ```text
+  possible
+  probable
+  suspected
+  suspicious
+  may represent
+  cannot exclude
+  question of
+  likely
+  equivocal
+  suggestive of
+  ```
+
+  Determine empirically how these patterns map to gold labels.
+
+  Do NOT create a universal rule such as:
+
+  > uncertainty = negative
+
+  or:
+
+  > uncertainty = positive
+
+  unless the gold data clearly support it.
+
+  Uncertainty may be label-specific.
+
+  ---
+
+  # 10. HISTORICAL / CURRENT ANALYSIS
+
+  Identify findings referring to:
+
+  ```text
+  history
+  prior injury
+  old injury
+  chronic
+  remote
+  postoperative
+  status post
+  previous examination
+  healed
+  residual
+  current/new/acute
+  ```
+
+  Determine whether historical findings are labeled differently from current findings.
+
+  Do not assume the answer.
+
+  ---
+
+  # 11. ANATOMICAL-SCOPE ANALYSIS
+
+  For every label analyze whether the gold annotation depends on:
+
+  * laterality
+  * compartment
+  * exact structure
+  * neighboring structures
+  * generalized vs focal disease
+  * native vs reconstructed anatomy
+
+  Especially analyze:
+
+  ```text
+  Medial OA
+  Lateral OA
+  PF OA
+
+  Medial Meniscus
+  Lateral Meniscus
+
+  ACL
+  MCL
+
+  Effusion
+  Synovitis
+  Baker's
+
+  Contusion
+  Fracture
+  ```
+
+  Determine whether generalized findings are mapped to multiple labels, one label, or inconsistently.
+
+  This must be based on observed gold cases.
+
+  ---
+
+  # 12. MULTILINGUAL / LANGUAGE ANALYSIS
+
+  Determine the actual language of each report programmatically where possible.
+
+  Do NOT allow the LLM to invent language labels.
+
+  For every language:
+
+  ```text
+  number of gold reports
+  number of reports with each label positive
+  number of reports with each label negative
+  ```
+
+  Also extract exact observed terminology for important findings.
+
+  Preserve the original phrase.
+
+  For multilingual terminology:
+
+  ```js
+  {
+    "English": ["complete tear", "rupture", "intact"],
+    "Spanish": ["rotura", "intacto"],
+    ...
+  }
+  ```
+
+  ---
+
+  # 13. REPORT STYLE ANALYSIS
+
+  Identify report structure variations:
+
+  * narrative
+  * structured sections
+  * bullet/list format
+  * findings/impression
+  * impression-only
+  * abbreviated
+  * templated
+  * multilingual mixed format
+
+  Explain whether style changes interpretation.
+
+  ---
+
+  # 14. PATTERN FREQUENCY
+
+  For every important pattern, record:
+
+  ```text
+  number of gold examples observed
+  number with label = 1
+  number with label = 0
+  ```
+
+  Do not treat a single occurrence as a strong rule.
+
+  ---
+
+  # 15. CONTRADICTORY PATTERNS
+
+  Explicitly find cases where:
+
+  ```text
+  same phrase → different gold labels
+  similar phrase → different gold labels
+  different phrases → same gold label
+  ```
+
+  These are high-priority cases for policy review.
+
+  ---
+
+  # 16. SAFE RULES
+
+  List ONLY rules that are strongly supported by multiple gold
+  examples and consistent context.
+
+  ---
+
+  # 17. UNSAFE SHORTCUTS
+
+  Explicitly list patterns that a future Model 1 must NOT use as
+  standalone rules.
+
+  Examples:
+  "bone marrow edema" → automatically Contusion
+  "osteophyte" → automatically OA
+  "degeneration" → automatically tear
+  "fluid" → automatically Effusion
+  "bursa" → automatically Baker's
+  "possible fracture" → automatically Fracture
+
+  Include such examples ONLY when supported by actual gold-set
+  observations.
+
+  ---
+
+  # 18. UNRESOLVED RULES
+
+  List questions that cannot be reliably answered from the 58
+  gold reports.
+
+  These must remain unresolved rather than being filled using
+  outside medical knowledge.
+
+  ---
+
+  # 19. GOLD CASE REFERENCES
+
+  For every important rule or ambiguity, reference the relevant
+  StudyInstanceUID(s) or gold-example identifiers so the finding
+  can be audited.
+
+  ---
+
+  # FINAL PRINCIPLE
+
+  ```
+    GOLD_ANALYSIS describes observed annotation behavior.
+
+    It must NOT become a list of "if phrase then label" rules unless
+    the gold data demonstrates that the phrase is sufficiently
+    specific and consistent.
+
+    Prefer:
+      phrase + context + anatomy + certainty + temporal status
+      → observed gold outcome
+
+    over:
+      phrase → label
+  ```
 
 user_template: |
   EXISTING LABELS:
+
   {labels}
 
   GOLD REPORTS:
+
   {gold_examples}
 
-  Produce a structured description of observed evidence patterns for each label.
-  These observations guide inference but never override the original report.
+  Analyze all supplied gold reports.
+
+  Produce a structured GOLD_ANALYSIS for all 12 labels.
+
+  Every important conclusion must be grounded in the supplied gold
+  reports and their existing labels.
+
+  Do not infer missing rules from medical knowledge.
+
+  Explicitly identify:
+  - safe patterns
+  - unsafe shortcuts
+  - context-dependent patterns
+  - contradictory patterns
+  - cross-label conflicts
+  - unresolved questions
+  - multilingual terminology
+  - report-style variation
+
+  The purpose of this analysis is to create a reliable annotation
+  policy for later inference and validation, not a keyword-matching
+  dictionary.
+
+  Return the analysis as structured JSON with the following structure:
+  {{
+    "metadata": {{"total_gold_reports": 58, "labels_analyzed": 12, "languages_observed": [], "report_styles_observed": []}},
+    "dataset_level": {{"languages": [], "report_styles": [], "clinical_scenarios": []}},
+    "label_specific": {{}},
+    "linguistic": {{"negation_patterns": {{}}, "uncertainty_patterns": {{}}, "historical_current_patterns": {{}}, "question_indication_patterns": {{}}, "abbreviations": {{}}, "multilingual_terminology": {{}}}},
+    "clinical": {{"anatomy": {{}}, "laterality": {{}}, "related_labels": {{}}, "confusing_findings": [], "difficult_cases": []}},
+    "contradictions": [],
+    "derived_conventions": [],
+    "unsafe_shortcuts": [],
+    "unresolved_rules": [],
+    "quality_control": {{}}
+  }}

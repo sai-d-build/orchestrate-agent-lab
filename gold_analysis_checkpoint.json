@@ -1,0 +1,1187 @@
+{
+  "completed_batches": [
+    "report_0_1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149_labels_0_ACL_MCL_Medial_Meniscus",
+    "report_0_1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149_labels_1_Lateral_Meniscus_Medial_OA_Lateral_OA",
+    "report_0_1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149_labels_2_PF_OA_Effusion_Synovitis"
+  ],
+  "analysis": {
+    "metadata": {
+      "total_gold_reports": 1,
+      "labels_analyzed": 3,
+      "labels_in_batch": [
+        "ACL",
+        "MCL",
+        "Medial_Meniscus"
+      ],
+      "languages_observed": [
+        "Spanish"
+      ],
+      "report_styles_observed": [
+        "structured_sections"
+      ]
+    },
+    "dataset_level": {
+      "languages": [
+        {
+          "language": "Spanish",
+          "report_count": 1,
+          "labels_positive": {
+            "ACL": 0,
+            "MCL": 0,
+            "Medial_Meniscus": 0
+          },
+          "labels_negative": {
+            "ACL": 1,
+            "MCL": 1,
+            "Medial_Meniscus": 1
+          }
+        }
+      ],
+      "report_styles": [
+        {
+          "style": "structured_sections",
+          "sections": [
+            "Antecedentes Clínicos",
+            "Hallazgos",
+            "Impresión"
+          ],
+          "report_count": 1
+        }
+      ],
+      "clinical_scenarios": [
+        {
+          "scenario": "knee_sprain_evaluation",
+          "description": "Clinical history of knee sprain (esguince rodilla)",
+          "report_count": 1
+        }
+      ]
+    },
+    "label_specific": {
+      "ACL": {
+        "gold_positive_count": 0,
+        "gold_negative_count": 1,
+        "raw_observations": [
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "Ligamentos cruzados y colaterales dentro de límites normales",
+            "normalized_pattern": "cruciate ligaments within normal limits",
+            "evidence_strength": "EXPLICIT_NEGATIVE",
+            "gold_label": 0,
+            "anatomical_scope": "ACL and PCL (cruciate ligaments)",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "Hallazgos section, general ligament assessment",
+            "related_findings": [
+              "collateral ligaments normal",
+              "no bone marrow edema"
+            ]
+          }
+        ],
+        "pattern_frequencies": [
+          {
+            "pattern": "cruciate ligaments within normal limits",
+            "total_occurrences": 1,
+            "gold_positive": 0,
+            "gold_negative": 1,
+            "positive_rate": 0.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          }
+        ],
+        "contradictions": [],
+        "safe_rules": [
+          {
+            "rule": "Explicit statement 'ligamentos cruzados ... dentro de límites normales' → ACL negative",
+            "supporting_studies": [
+              "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+            ],
+            "evidence_strength": "EXPLICIT_NEGATIVE"
+          }
+        ],
+        "unsafe_shortcuts": [],
+        "unresolved_rules": [
+          {
+            "question": "Whether 'ligamentos cruzados' normal always implies both ACL and PCL are individually normal, or if one could be abnormal while the general statement is made",
+            "relevant_studies": [
+              "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+            ]
+          }
+        ],
+        "anatomy_specifics": {
+          "structure": "ACL",
+          "laterality": "not_specified",
+          "compartment": "central",
+          "native_vs_graft": "native"
+        }
+      },
+      "MCL": {
+        "gold_positive_count": 0,
+        "gold_negative_count": 1,
+        "raw_observations": [
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "Ligamentos cruzados y colaterales dentro de límites normales",
+            "normalized_pattern": "collateral ligaments within normal limits",
+            "evidence_strength": "EXPLICIT_NEGATIVE",
+            "gold_label": 0,
+            "anatomical_scope": "MCL and LCL (collateral ligaments)",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "Hallazgos section, general ligament assessment",
+            "related_findings": [
+              "cruciate ligaments normal",
+              "no bone marrow edema"
+            ]
+          }
+        ],
+        "pattern_frequencies": [
+          {
+            "pattern": "collateral ligaments within normal limits",
+            "total_occurrences": 1,
+            "gold_positive": 0,
+            "gold_negative": 1,
+            "positive_rate": 0.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          }
+        ],
+        "contradictions": [],
+        "safe_rules": [
+          {
+            "rule": "Explicit statement 'ligamentos ... colaterales ... dentro de límites normales' → MCL negative",
+            "supporting_studies": [
+              "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+            ],
+            "evidence_strength": "EXPLICIT_NEGATIVE"
+          }
+        ],
+        "unsafe_shortcuts": [],
+        "unresolved_rules": [
+          {
+            "question": "Whether 'ligamentos colaterales' normal always implies both MCL and LCL are individually normal",
+            "relevant_studies": [
+              "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+            ]
+          }
+        ],
+        "anatomy_specifics": {
+          "structure": "MCL",
+          "laterality": "medial",
+          "compartment": "medial",
+          "native_vs_graft": "native"
+        }
+      },
+      "Medial_Meniscus": {
+        "gold_positive_count": 0,
+        "gold_negative_count": 1,
+        "raw_observations": [
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "Menisco medial de morfología y señal conservada, sin signos de rotura",
+            "normalized_pattern": "medial meniscus morphology and signal preserved, no signs of tear",
+            "evidence_strength": "EXPLICIT_NEGATIVE",
+            "gold_label": 0,
+            "anatomical_scope": "medial meniscus (body, horns not separately specified)",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "Hallazgos section, meniscal assessment",
+            "related_findings": [
+              "lateral meniscus marginal amputation",
+              "cartilage intact in femorotibial compartments"
+            ]
+          }
+        ],
+        "pattern_frequencies": [
+          {
+            "pattern": "medial meniscus morphology and signal preserved, no signs of tear",
+            "total_occurrences": 1,
+            "gold_positive": 0,
+            "gold_negative": 1,
+            "positive_rate": 0.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          }
+        ],
+        "contradictions": [],
+        "safe_rules": [
+          {
+            "rule": "Explicit statement 'menisco medial ... conservada, sin signos de rotura' → Medial Meniscus negative",
+            "supporting_studies": [
+              "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+            ],
+            "evidence_strength": "EXPLICIT_NEGATIVE"
+          }
+        ],
+        "unsafe_shortcuts": [
+          {
+            "pattern": "lateral meniscus pathology (amputación marginal)",
+            "reason": "Lateral meniscus finding does not imply medial meniscus pathology; gold label for medial meniscus is 0 despite lateral meniscus abnormality",
+            "relevant_studies": [
+              "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+            ]
+          }
+        ],
+        "unresolved_rules": [],
+        "anatomy_specifics": {
+          "structure": "medial meniscus",
+          "laterality": "medial",
+          "compartment": "medial femorotibial",
+          "native_vs_graft": "native"
+        }
+      },
+      "Lateral_Meniscus": {
+        "gold_positive_count": 0,
+        "gold_negative_count": 1,
+        "raw_observations": [
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "Amputación marginal del cuerpo del menisco lateral",
+            "normalized_pattern": "marginal_amputation_lateral_meniscus_body",
+            "evidence_strength": "DEFINITE_POSITIVE",
+            "gold_label": 0,
+            "anatomical_scope": "lateral_meniscus_body",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "findings_section",
+            "related_findings": [
+              "medial_meniscus_preserved",
+              "no_ligament_tears",
+              "mild_effusion"
+            ]
+          }
+        ],
+        "pattern_frequencies": [
+          {
+            "pattern": "marginal_amputation_lateral_meniscus_body",
+            "total_occurrences": 1,
+            "gold_positive": 0,
+            "gold_negative": 1,
+            "positive_rate": 0.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          }
+        ],
+        "contradictions": [],
+        "safe_rules": [],
+        "unsafe_shortcuts": [
+          {
+            "pattern": "amputación marginal menisco lateral",
+            "reason": "Marginal amputation of lateral meniscus body present but gold label = 0. Do not equate meniscal amputation/resection with positive tear label without confirming annotation policy.",
+            "evidence": "Study 1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+          }
+        ],
+        "unresolved_rules": [
+          {
+            "question": "Does 'amputación marginal' (marginal amputation) of meniscus represent a tear, post-surgical change, or degenerative change? Why is gold label 0 despite definite meniscal abnormality?",
+            "relevant_studies": [
+              "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+            ]
+          }
+        ],
+        "anatomy_specifics": {
+          "structure": "lateral_meniscus_body",
+          "laterality": "lateral",
+          "compartment": "lateral",
+          "native_vs_graft": "native"
+        }
+      },
+      "Medial_OA": {
+        "gold_positive_count": 0,
+        "gold_negative_count": 1,
+        "raw_observations": [
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "Cartílagos de los compartimentos femorotibiales sin alteraciones",
+            "normalized_pattern": "femorotibial_cartilages_without_alterations",
+            "evidence_strength": "EXPLICIT_NEGATIVE",
+            "gold_label": 0,
+            "anatomical_scope": "medial_and_lateral_femorotibial_compartments",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "findings_section",
+            "related_findings": [
+              "patellofemoral_chondropathy_grade4",
+              "trochlear_reparative_changes"
+            ]
+          },
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "Fina úlcera condral focal de espesor total del aspecto inferior de la vertiente medial de la tróclea femoral con mínimos cambios óseos secundarios",
+            "normalized_pattern": "focal_full_thickness_chondral_ulcer_medial_trochlear_facet",
+            "evidence_strength": "DEFINITE_POSITIVE",
+            "gold_label": 0,
+            "anatomical_scope": "medial_facet_femoral_trochlea_patellofemoral_joint",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "findings_section_and_impression",
+            "related_findings": [
+              "trochlear_reparative_changes",
+              "patellar_cartilage_normal"
+            ]
+          },
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "Condropatía focal grado 4 del aspecto inferior de la vertiente medial de la tróclea femoral",
+            "normalized_pattern": "focal_grade4_chondropathy_medial_trochlear_facet",
+            "evidence_strength": "DEFINITE_POSITIVE",
+            "gold_label": 0,
+            "anatomical_scope": "medial_facet_femoral_trochlea_patellofemoral_joint",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "impression_section",
+            "related_findings": [
+              "trochlear_reparative_changes"
+            ]
+          }
+        ],
+        "pattern_frequencies": [
+          {
+            "pattern": "femorotibial_cartilages_without_alterations",
+            "total_occurrences": 1,
+            "gold_positive": 0,
+            "gold_negative": 1,
+            "positive_rate": 0.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          },
+          {
+            "pattern": "focal_full_thickness_chondral_ulcer_medial_trochlear_facet",
+            "total_occurrences": 1,
+            "gold_positive": 0,
+            "gold_negative": 1,
+            "positive_rate": 0.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          },
+          {
+            "pattern": "focal_grade4_chondropathy_medial_trochlear_facet",
+            "total_occurrences": 1,
+            "gold_positive": 0,
+            "gold_negative": 1,
+            "positive_rate": 0.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          }
+        ],
+        "contradictions": [
+          {
+            "pattern": "grade4_chondropathy_medial_trochlea",
+            "description": "Definite grade 4 chondropathy of medial trochlear facet present but Medial_OA label = 0",
+            "type": "CONTEXT_RESOLVED",
+            "explanation": "Medial trochlear facet is part of patellofemoral joint, not medial tibiofemoral compartment. Medial_OA label appears specific to medial tibiofemoral compartment.",
+            "positive_studies": [],
+            "negative_studies": [
+              "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+            ]
+          }
+        ],
+        "safe_rules": [
+          {
+            "rule": "Explicit statement 'cartílagos de los compartimentos femorotibiales sin alteraciones' → Medial_OA = 0 and Lateral_OA = 0",
+            "supporting_studies": [
+              "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+            ],
+            "evidence_strength": "EXPLICIT_NEGATIVE"
+          }
+        ],
+        "unsafe_shortcuts": [
+          {
+            "pattern": "condropatía grado 4 / chondral ulcer medial trochlea",
+            "reason": "Grade 4 chondropathy / full-thickness chondral ulcer of medial trochlear facet present but Medial_OA = 0. Do not map patellofemoral chondropathy to medial tibiofemoral OA label.",
+            "evidence": "Study 1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+          }
+        ],
+        "unresolved_rules": [
+          {
+            "question": "Is Medial_OA strictly limited to medial tibiofemoral compartment, excluding medial trochlear facet (PF joint)?",
+            "relevant_studies": [
+              "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+            ]
+          }
+        ],
+        "anatomy_specifics": {
+          "compartment": "medial_tibiofemoral",
+          "excludes": [
+            "medial_trochlear_facet",
+            "patellofemoral_joint"
+          ],
+          "laterality": "medial"
+        }
+      },
+      "Lateral_OA": {
+        "gold_positive_count": 0,
+        "gold_negative_count": 1,
+        "raw_observations": [
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "Cartílagos de los compartimentos femorotibiales sin alteraciones",
+            "normalized_pattern": "femorotibial_cartilages_without_alterations",
+            "evidence_strength": "EXPLICIT_NEGATIVE",
+            "gold_label": 0,
+            "anatomical_scope": "medial_and_lateral_femorotibial_compartments",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "findings_section",
+            "related_findings": [
+              "patellofemoral_chondropathy_grade4",
+              "trochlear_reparative_changes"
+            ]
+          }
+        ],
+        "pattern_frequencies": [
+          {
+            "pattern": "femorotibial_cartilages_without_alterations",
+            "total_occurrences": 1,
+            "gold_positive": 0,
+            "gold_negative": 1,
+            "positive_rate": 0.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          }
+        ],
+        "contradictions": [],
+        "safe_rules": [
+          {
+            "rule": "Explicit statement 'cartílagos de los compartimentos femorotibiales sin alteraciones' → Lateral_OA = 0",
+            "supporting_studies": [
+              "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+            ],
+            "evidence_strength": "EXPLICIT_NEGATIVE"
+          }
+        ],
+        "unsafe_shortcuts": [],
+        "unresolved_rules": [],
+        "anatomy_specifics": {
+          "compartment": "lateral_tibiofemoral",
+          "laterality": "lateral"
+        }
+      },
+      "PF_OA": {
+        "gold_positive_count": 1,
+        "gold_negative_count": 0,
+        "raw_observations": [
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "Fina úlcera condral focal de espesor total del aspecto inferior de la vertiente medial de la tróclea femoral con mínimos cambios óseos secundarios",
+            "normalized_pattern": "full-thickness focal chondral ulcer medial trochlear facet with secondary bone changes",
+            "evidence_strength": "DEFINITE_POSITIVE",
+            "gold_label": 1,
+            "anatomical_scope": "medial trochlear facet (patellofemoral joint)",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "Hallazgos section describing cartilage findings",
+            "related_findings": [
+              "Fenómenos condrales reparativos de la región central de la tróclea femoral",
+              "Cartílago rotuliano sin alteraciones",
+              "Cartílagos de los compartimentos femorotibiales sin alteraciones"
+            ]
+          },
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "Condropatía focal grado 4 del aspecto inferior de la vertiente medial de la tróclea femoral",
+            "normalized_pattern": "focal grade 4 chondropathy inferior aspect medial trochlear facet",
+            "evidence_strength": "DEFINITE_POSITIVE",
+            "gold_label": 1,
+            "anatomical_scope": "medial trochlear facet (patellofemoral joint)",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "Impresión section summarizing key findings",
+            "related_findings": [
+              "Fenómenos condrales reparativos de la región central de la tróclea femoral",
+              "Leve derrame articular"
+            ]
+          },
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "Fenómenos condrales reparativos de la región central de la tróclea femoral",
+            "normalized_pattern": "reparative chondral phenomena central trochlear region",
+            "evidence_strength": "INDIRECT_SUPPORT",
+            "gold_label": 1,
+            "anatomical_scope": "central trochlea (patellofemoral joint)",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "Both Hallazgos and Impresión sections",
+            "related_findings": [
+              "Fina úlcera condral focal...",
+              "Condropatía focal grado 4..."
+            ]
+          }
+        ],
+        "pattern_frequencies": [
+          {
+            "pattern": "full-thickness chondral ulcer trochlea",
+            "total_occurrences": 1,
+            "gold_positive": 1,
+            "gold_negative": 0,
+            "positive_rate": 1.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          },
+          {
+            "pattern": "grade 4 chondropathy trochlea",
+            "total_occurrences": 1,
+            "gold_positive": 1,
+            "gold_negative": 0,
+            "positive_rate": 1.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          },
+          {
+            "pattern": "reparative chondral phenomena trochlea",
+            "total_occurrences": 1,
+            "gold_positive": 1,
+            "gold_negative": 0,
+            "positive_rate": 1.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          },
+          {
+            "pattern": "patellar cartilage normal",
+            "total_occurrences": 1,
+            "gold_positive": 1,
+            "gold_negative": 0,
+            "positive_rate": 1.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          }
+        ],
+        "contradictions": [],
+        "safe_rules": [
+          "Explicit full-thickness chondral ulcer / grade 4 chondropathy of trochlear facet → PF_OA = 1",
+          "Trochlear cartilage damage (medial facet) qualifies as patellofemoral OA even when patellar cartilage is normal"
+        ],
+        "unsafe_shortcuts": [
+          "Any chondral lesion anywhere → PF_OA (must be patellofemoral compartment specific)",
+          "Chondropathy without grade/specification → PF_OA (grade 4 explicit here)"
+        ],
+        "unresolved_rules": [
+          "Whether lower-grade trochlear chondropathy (grade 2-3) would be labeled PF_OA",
+          "Whether isolated patellar cartilage lesion without trochlear involvement would be labeled PF_OA"
+        ],
+        "anatomy_specifics": {
+          "compartment": "patellofemoral",
+          "structures_involved": [
+            "medial trochlear facet",
+            "central trochlea"
+          ],
+          "structures_spared": [
+            "patellar cartilage",
+            "femorotibial compartments (medial and lateral)"
+          ]
+        }
+      },
+      "Effusion": {
+        "gold_positive_count": 1,
+        "gold_negative_count": 0,
+        "raw_observations": [
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "Leve derrame articular",
+            "normalized_pattern": "mild joint effusion",
+            "evidence_strength": "DEFINITE_POSITIVE",
+            "gold_label": 1,
+            "anatomical_scope": "knee joint (general)",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "Hallazgos section and repeated in Impresión",
+            "related_findings": [
+              "No hay quistes poplíteos patológicos",
+              "Condropatía focal grado 4...",
+              "Amputación marginal del cuerpo del menisco lateral"
+            ]
+          }
+        ],
+        "pattern_frequencies": [
+          {
+            "pattern": "leve derrame articular / mild joint effusion",
+            "total_occurrences": 2,
+            "gold_positive": 2,
+            "gold_negative": 0,
+            "positive_rate": 1.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          }
+        ],
+        "contradictions": [],
+        "safe_rules": [
+          "Explicit mention of derrame articular / joint effusion → Effusion = 1",
+          "Severity qualifier (leve/mild) does not negate presence"
+        ],
+        "unsafe_shortcuts": [
+          "Any fluid mention → Effusion (must be joint effusion specifically, not bursa or cyst)",
+          "Popliteal cyst mention → Effusion (explicitly separate: 'No hay quistes poplíteos patológicos')"
+        ],
+        "unresolved_rules": [
+          "Whether trace/minimal effusion without explicit 'derrame' wording would be labeled positive",
+          "Whether effusion described only in impression but not findings would be labeled positive"
+        ],
+        "anatomy_specifics": {
+          "location": "knee joint cavity",
+          "severity": "mild (leve)",
+          "associated_findings": [
+            "no pathological popliteal cysts"
+          ]
+        }
+      },
+      "Synovitis": {
+        "gold_positive_count": 0,
+        "gold_negative_count": 1,
+        "raw_observations": [
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "No hay alteraciones de señal de la grasa de Hoffa",
+            "normalized_pattern": "no signal alterations of Hoffa fat pad",
+            "evidence_strength": "EXPLICIT_NEGATIVE",
+            "gold_label": 0,
+            "anatomical_scope": "Hoffa fat pad (anterior knee, related to synovial reflection)",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "Hallazgos section - negative finding for fat pad",
+            "related_findings": [
+              "Leve derrame articular",
+              "Aumento de señal de la inserción distal del tendón cuadricipital...",
+              "No hay quistes poplíteos patológicos"
+            ]
+          },
+          {
+            "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+            "exact_text": "[ABSENCE] No mention of synovitis, synovial thickening, synovial enhancement, or synovial proliferation anywhere in report",
+            "normalized_pattern": "absence of any synovial abnormality description",
+            "evidence_strength": "EXPLICIT_NEGATIVE",
+            "gold_label": 0,
+            "anatomical_scope": "knee synovium (general)",
+            "certainty": "definite",
+            "temporal_status": "current",
+            "context": "Entire report lacks any synovial pathology terminology",
+            "related_findings": [
+              "Leve derrame articular",
+              "No hay alteraciones de señal de la grasa de Hoffa"
+            ]
+          }
+        ],
+        "pattern_frequencies": [
+          {
+            "pattern": "no synovial abnormality mentioned",
+            "total_occurrences": 1,
+            "gold_positive": 0,
+            "gold_negative": 1,
+            "positive_rate": 0.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          },
+          {
+            "pattern": "Hoffa fat pad normal",
+            "total_occurrences": 1,
+            "gold_positive": 0,
+            "gold_negative": 1,
+            "positive_rate": 0.0,
+            "unique_studies": 1,
+            "sample_size": "SMALL"
+          }
+        ],
+        "contradictions": [],
+        "safe_rules": [
+          "Complete absence of synovial pathology terminology in structured report → Synovitis = 0",
+          "Normal Hoffa fat pad signal supports absence of anterior synovitis"
+        ],
+        "unsafe_shortcuts": [
+          "Effusion present → Synovitis (here Effusion=1 but Synovitis=0)",
+          "Meniscal tear → Synovitis (lateral meniscus amputation present but Synovitis=0)",
+          "Chondral lesion → Synovitis (grade 4 trochlear lesion present but Synovitis=0)"
+        ],
+        "unresolved_rules": [
+          "Whether subtle synovial thickening without explicit mention would be labeled negative",
+          "Whether synovitis requires contrast-enhanced MRI for positive label in this dataset"
+        ],
+        "anatomy_specifics": {
+          "structures_assessed": [
+            "synovium (general)",
+            "Hoffa fat pad"
+          ],
+          "structures_normal": [
+            "Hoffa fat pad"
+          ],
+          "related_positive_findings_that_did_not_trigger_synovitis": [
+            "mild effusion",
+            "lateral meniscus marginal amputation",
+            "grade 4 trochlear chondropathy"
+          ]
+        }
+      }
+    },
+    "linguistic": {
+      "negation_patterns": {
+        "ACL": [
+          {
+            "pattern": "dentro de límites normales",
+            "target_label": "ACL",
+            "gold_outcome": 0,
+            "occurrences": 1,
+            "negation_scope_clear": true,
+            "notes": "Applies to 'ligamentos cruzados' (cruciate ligaments including ACL)"
+          }
+        ],
+        "MCL": [
+          {
+            "pattern": "dentro de límites normales",
+            "target_label": "MCL",
+            "gold_outcome": 0,
+            "occurrences": 1,
+            "negation_scope_clear": true,
+            "notes": "Applies to 'ligamentos colaterales' (collateral ligaments including MCL)"
+          }
+        ],
+        "Medial_Meniscus": [
+          {
+            "pattern": "sin signos de rotura",
+            "target_label": "Medial_Meniscus",
+            "gold_outcome": 0,
+            "occurrences": 1,
+            "negation_scope_clear": true,
+            "notes": "Explicit negation of tear signs for medial meniscus"
+          },
+          {
+            "pattern": "morfología y señal conservada",
+            "target_label": "Medial_Meniscus",
+            "gold_outcome": 0,
+            "occurrences": 1,
+            "negation_scope_clear": true,
+            "notes": "Positive statement of preservation implying absence of pathology"
+          }
+        ],
+        "no_hay_alteraciones": {
+          "pattern": "no hay alteraciones",
+          "target_labels": [
+            "Lateral_Meniscus",
+            "Medial_OA",
+            "Lateral_OA"
+          ],
+          "gold_outcome": 0,
+          "occurrences": 2,
+          "scope_clear": true,
+          "examples": [
+            {
+              "study": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+              "text": "No hay alteraciones de señal significativas de la médula ósea",
+              "target": "bone_marrow"
+            },
+            {
+              "study": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+              "text": "Cartílagos de los compartimentos femorotibiales sin alteraciones",
+              "target": "femorotibial_cartilage"
+            }
+          ]
+        },
+        "sin_signos_de": {
+          "pattern": "sin signos de",
+          "target_labels": [
+            "Lateral_Meniscus"
+          ],
+          "gold_outcome": 0,
+          "occurrences": 1,
+          "scope_clear": true,
+          "examples": [
+            {
+              "study": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+              "text": "Menisco medial de morfología y señal conservada, sin signos de rotura",
+              "target": "medial_meniscus_tear"
+            }
+          ]
+        },
+        "no_hay_quistes": {
+          "pattern": "no hay quistes poplíteos patológicos",
+          "target_labels": [
+            "Bakers"
+          ],
+          "gold_outcome": 0,
+          "occurrences": 1,
+          "scope_clear": true,
+          "examples": [
+            {
+              "study": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+              "text": "No hay quistes poplíteos patológicos",
+              "target": "bakers_cyst"
+            }
+          ]
+        },
+        "sin_signos_de_rotura_tendons": {
+          "pattern": "sin signos de rotura",
+          "target_labels": [
+            "quadriceps_tendon",
+            "patellar_tendon"
+          ],
+          "gold_outcome": 0,
+          "occurrences": 1,
+          "scope_clear": true,
+          "examples": [
+            {
+              "study": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+              "text": "Aumento de señal de la inserción distal del tendón cuadricipital y de la inserción proximal del tendón rotuliano, sin signos de rotura",
+              "target": "tendon_tear"
+            }
+          ]
+        },
+        "no_hay_alteraciones_grasa_hoffa": {
+          "pattern": "no hay alteraciones de señal de la grasa de Hoffa",
+          "target_labels": [
+            "Hoffa_fat_pad"
+          ],
+          "gold_outcome": 0,
+          "occurrences": 1,
+          "scope_clear": true,
+          "examples": [
+            {
+              "study": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+              "text": "No hay alteraciones de señal de la grasa de Hoffa",
+              "target": "hoffa_fat_pad"
+            }
+          ]
+        }
+      },
+      "uncertainty_patterns": {},
+      "historical_current_patterns": {
+        "ACL": [],
+        "MCL": [],
+        "Medial_Meniscus": [],
+        "esguince_rodilla": {
+          "pattern": "esguince rodilla",
+          "temporal_status": "acute_current",
+          "context": "clinical_history",
+          "studies": [
+            "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+          ]
+        }
+      },
+      "question_indication_patterns": {
+        "clinical_history": "Esguince rodilla (knee sprain)",
+        "indication_present": true,
+        "labels_affected": [
+          "ACL",
+          "MCL",
+          "Medial_Meniscus"
+        ]
+      },
+      "abbreviations": {},
+      "multilingual_terminology": {
+        "Spanish": {
+          "meniscal_amputation": "amputación marginal",
+          "meniscal_tear": "rotura",
+          "chondral_ulcer": "úlcera condral",
+          "chondropathy": "condropatía",
+          "full_thickness": "espesor total",
+          "trochlear_facet": "vertiente de la tróclea",
+          "femorotibial_compartments": "compartimentos femorotibiales",
+          "patellar_cartilage": "cartílago rotuliano",
+          "joint_effusion": "derrame articular",
+          "popliteal_cyst": "quiste poplíteo",
+          "quadriceps_tendon": "tendón cuadricipital",
+          "patellar_tendon": "tendón rotuliano",
+          "hoffa_fat_pad": "grasa de Hoffa",
+          "bone_marrow": "médula ósea",
+          "cruciate_ligaments": "ligamentos cruzados",
+          "collateral_ligaments": "ligamentos colaterales",
+          "reparative_chondral_phenomena": "fenómenos condrales reparativos",
+          "tendinosis": "tendinosis",
+          "grade_4": "grado 4",
+          "focal": "focal",
+          "mild": "leve",
+          "preserved": "conservada",
+          "normal_limits": "dentro de límites normales",
+          "significant": "significativas",
+          "secondary_bone_changes": "cambios óseos secundarios",
+          "pathological": "patológicos",
+          "increased_signal": "aumento de señal",
+          "distal_insertion": "inserción distal",
+          "proximal_insertion": "inserción proximal",
+          "medial": "medial",
+          "lateral": "lateral",
+          "inferior_aspect": "aspecto inferior",
+          "central_region": "región central",
+          "femoral_trochlea": "tróclea femoral",
+          "knee_sprain": "esguince rodilla",
+          "clinical_history": "antecedentes clínicos",
+          "findings": "hallazgos",
+          "impression": "impresión"
+        }
+      }
+    },
+    "clinical": {
+      "anatomy": {
+        "ACL": {
+          "assessed_as_part_of": "cruciate ligaments group",
+          "explicitly_named": false
+        },
+        "MCL": {
+          "assessed_as_part_of": "collateral ligaments group",
+          "explicitly_named": false
+        },
+        "Medial_Meniscus": {
+          "explicitly_named": true,
+          "assessment_detail": "morphology and signal described, tear signs explicitly negated"
+        },
+        "lateral_meniscus_body": {
+          "label": "Lateral_Meniscus",
+          "finding": "amputación marginal",
+          "gold_label": 0
+        },
+        "medial_trochlear_facet": {
+          "label": "Medial_OA",
+          "finding": "grade 4 chondropathy / full-thickness chondral ulcer",
+          "gold_label": 0,
+          "note": "PF joint, not medial tibiofemoral"
+        },
+        "femorotibial_compartments": {
+          "label": "Medial_OA,Lateral_OA",
+          "finding": "sin alteraciones",
+          "gold_label": 0
+        },
+        "patellofemoral_joint": {
+          "label": "PF_OA",
+          "finding": "grade 4 chondropathy medial trochlea + reparative changes",
+          "gold_label": "not_in_batch"
+        }
+      },
+      "laterality": {
+        "knee_laterality": "not_specified_in_report",
+        "structures_assessed": {
+          "medial": [
+            "MCL",
+            "medial meniscus",
+            "medial femoral trochlea cartilage"
+          ],
+          "lateral": [
+            "LCL",
+            "lateral meniscus"
+          ],
+          "central": [
+            "ACL",
+            "PCL"
+          ]
+        }
+      },
+      "related_labels": {
+        "ACL_MCL": "Assessed together as 'ligamentos cruzados y colaterales' - both negative",
+        "Medial_Meniscus_Lateral_Meniscus": "Assessed separately - medial negative, lateral positive (amputation)",
+        "Medial_Meniscus_Medial_OA": "Medial meniscus negative while medial trochlear cartilage shows grade 4 chondropathy"
+      },
+      "confusing_findings": [
+        {
+          "finding": "Amputación marginal del cuerpo del menisco lateral",
+          "labels_affected": [
+            "Lateral_Meniscus (not in batch)"
+          ],
+          "confusion_risk": "Could be mistaken for tear if 'amputación' not recognized as meniscal tissue loss/absence"
+        },
+        {
+          "finding": "Condropatía focal grado 4 del aspecto inferior de la vertiente medial de la tróclea femoral",
+          "labels_affected": [
+            "PF_OA (not in batch)"
+          ],
+          "confusion_risk": "Medial trochlear cartilage lesion - not medial compartment OA, not medial meniscus"
+        },
+        {
+          "finding": "Amputación marginal del cuerpo del menisco lateral",
+          "labels_affected": [
+            "Lateral_Meniscus (not in batch)"
+          ],
+          "confusion_risk": "Could be mistaken for tear if 'amputación' not recognized as meniscal tissue loss/absence"
+        },
+        {
+          "finding": "Condropatía focal grado 4 del aspecto inferior de la vertiente medial de la tróclea femoral",
+          "labels_affected": [
+            "PF_OA (not in batch)"
+          ],
+          "confusion_risk": "Medial trochlear cartilage lesion - not medial compartment OA, not medial meniscus"
+        }
+      ],
+      "difficult_cases": []
+    },
+    "contradictions": [],
+    "derived_conventions": [
+      {
+        "convention": "Spanish reports use 'dentro de límites normales' for normal ligaments (both cruciate and collateral)",
+        "labels": [
+          "ACL",
+          "MCL"
+        ],
+        "evidence": "Single report observation"
+      },
+      {
+        "convention": "Spanish reports use 'morfología y señal conservada, sin signos de rotura' for normal meniscus",
+        "labels": [
+          "Medial_Meniscus"
+        ],
+        "evidence": "Single report observation"
+      },
+      {
+        "convention": "Report structure: Antecedentes Clínicos → Hallazgos → Impresión",
+        "labels": [
+          "all"
+        ],
+        "evidence": "Single report observation"
+      },
+      {
+        "convention": "Spanish reports use 'dentro de límites normales' for normal ligaments (both cruciate and collateral)",
+        "labels": [
+          "ACL",
+          "MCL"
+        ],
+        "evidence": "Single report observation"
+      },
+      {
+        "convention": "Spanish reports use 'morfología y señal conservada, sin signos de rotura' for normal meniscus",
+        "labels": [
+          "Medial_Meniscus"
+        ],
+        "evidence": "Single report observation"
+      },
+      {
+        "convention": "Report structure: Antecedentes Clínicos → Hallazgos → Impresión",
+        "labels": [
+          "all"
+        ],
+        "evidence": "Single report observation"
+      }
+    ],
+    "unsafe_shortcuts": [
+      {
+        "shortcut": "Assuming 'ligamentos cruzados normales' means ACL specifically normal without separate mention",
+        "risk": "Group statement may mask individual ligament abnormality",
+        "labels": [
+          "ACL"
+        ],
+        "evidence": "Only 1 report; cannot verify if group statement always equals individual normality"
+      },
+      {
+        "shortcut": "Assuming 'ligamentos colaterales normales' means MCL specifically normal",
+        "risk": "Group statement may mask individual ligament abnormality",
+        "labels": [
+          "MCL"
+        ],
+        "evidence": "Only 1 report; cannot verify if group statement always equals individual normality"
+      },
+      {
+        "shortcut": "Lateral meniscus pathology → Medial meniscus pathology",
+        "risk": "Contralateral meniscus can be normal while other is abnormal",
+        "labels": [
+          "Medial_Meniscus"
+        ],
+        "evidence": "This report shows lateral meniscus amputation with medial meniscus normal"
+      },
+      {
+        "shortcut": "Assuming 'ligamentos cruzados normales' means ACL specifically normal without separate mention",
+        "risk": "Group statement may mask individual ligament abnormality",
+        "labels": [
+          "ACL"
+        ],
+        "evidence": "Only 1 report; cannot verify if group statement always equals individual normality"
+      },
+      {
+        "shortcut": "Assuming 'ligamentos colaterales normales' means MCL specifically normal",
+        "risk": "Group statement may mask individual ligament abnormality",
+        "labels": [
+          "MCL"
+        ],
+        "evidence": "Only 1 report; cannot verify if group statement always equals individual normality"
+      },
+      {
+        "shortcut": "Lateral meniscus pathology → Medial meniscus pathology",
+        "risk": "Contralateral meniscus can be normal while other is abnormal",
+        "labels": [
+          "Medial_Meniscus"
+        ],
+        "evidence": "This report shows lateral meniscus amputation with medial meniscus normal"
+      }
+    ],
+    "unresolved_rules": [
+      {
+        "question": "Does 'ligamentos cruzados dentro de límites normales' always imply both ACL and PCL are individually normal in this dataset?",
+        "labels": [
+          "ACL"
+        ],
+        "relevant_studies": [
+          "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+        ]
+      },
+      {
+        "question": "Does 'ligamentos colaterales dentro de límites normales' always imply both MCL and LCL are individually normal?",
+        "labels": [
+          "MCL"
+        ],
+        "relevant_studies": [
+          "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+        ]
+      },
+      {
+        "question": "How are partial tears or degenerative changes of medial meniscus phrased in Spanish reports when positive?",
+        "labels": [
+          "Medial_Meniscus"
+        ],
+        "relevant_studies": []
+      },
+      {
+        "question": "Does 'ligamentos cruzados dentro de límites normales' always imply both ACL and PCL are individually normal in this dataset?",
+        "labels": [
+          "ACL"
+        ],
+        "relevant_studies": [
+          "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+        ]
+      },
+      {
+        "question": "Does 'ligamentos colaterales dentro de límites normales' always imply both MCL and LCL are individually normal?",
+        "labels": [
+          "MCL"
+        ],
+        "relevant_studies": [
+          "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149"
+        ]
+      },
+      {
+        "question": "How are partial tears or degenerative changes of medial meniscus phrased in Spanish reports when positive?",
+        "labels": [
+          "Medial_Meniscus"
+        ],
+        "relevant_studies": []
+      }
+    ],
+    "quality_control": {
+      "total_reports_analyzed": 1,
+      "total_labels_analyzed": 3,
+      "label_counts_verified": {
+        "ACL": {
+          "positive": 0,
+          "negative": 1,
+          "total": 1
+        },
+        "MCL": {
+          "positive": 0,
+          "negative": 1,
+          "total": 1
+        },
+        "Medial_Meniscus": {
+          "positive": 0,
+          "negative": 1,
+          "total": 1
+        }
+      },
+      "pattern_count_verification": {
+        "ACL": {
+          "patterns_checked": 1,
+          "counts_consistent": true
+        },
+        "MCL": {
+          "patterns_checked": 1,
+          "counts_consistent": true
+        },
+        "Medial_Meniscus": {
+          "patterns_checked": 1,
+          "counts_consistent": true
+        }
+      },
+      "discrepancies": [],
+      "notes": "Single report analysis; all counts are minimal. Patterns marked SMALL sample size. Full dataset of 58 reports needed for reliable conventions."
+    }
+  },
+  "timestamp": 1789918976.372312
+}

@@ -14,6 +14,7 @@ retrieval:
 models:
   inference_profile: nvidia-ragset-inference
   validator_profile: nvidia-ragset-validator
+  gold_analysis_profile: nvidia-ragset-gold-analysis
   temperature: 0
 
 loop:

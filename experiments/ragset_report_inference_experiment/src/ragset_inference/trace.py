@@ -10,12 +10,31 @@ def prompt_hash(text: str) -> str:
 
 def write_trace(path, *, report_id, stage, model, attempt, prompt, status,
                 latency_seconds=None, input_tokens=None, output_tokens=None,
-                error=None):
+                error=None, provider=None, actual_model=None):
+    """Write a model usage trace record.
+
+    Args:
+        path: Path to trace JSONL file
+        report_id: StudyInstanceUID of the report
+        stage: "inference" or "validation"
+        model: Requested model name
+        attempt: Attempt number (1-indexed)
+        prompt: Full prompt sent to model
+        status: "success" or "error"
+        latency_seconds: Response latency
+        input_tokens: Input token count (if available)
+        output_tokens: Output token count (if available)
+        error: Error message if status is "error"
+        provider: Provider name (e.g., "openrouter", "nvidia")
+        actual_model: Actual model used (may differ from requested for OpenRouter)
+    """
     record = {
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "report_id": report_id,
         "stage": stage,
-        "model": model,
+        "requested_model": model,
+        "actual_model": actual_model,
+        "provider": provider,
         "attempt": attempt,
         "prompt_hash": prompt_hash(prompt),
         "status": status,

@@ -47,7 +47,32 @@ class GoldRetriever:
 
         Prevents data leakage: when evaluating on a held-out gold report,
         that report must not appear in its own retrieval context.
+
+        Correct algorithm:
+        1. Calculate candidate similarities
+        2. Remove excluded StudyInstanceUID
+        3. Sort remaining candidates
+        4. Take top-k
         """
-        results = self.retrieve(report)
-        filtered = [r for r in results if r["study_id"] != exclude_study_id]
-        return filtered
+        q = self.vectorizer.transform([report])
+        scores = cosine_similarity(q, self.matrix)[0]
+        # Get all indices sorted by similarity (descending)
+        idxs = scores.argsort()[::-1]
+        # Filter out excluded study_id BEFORE taking top-k
+        filtered_idxs = [
+            i for i in idxs
+            if str(self.gold.iloc[i]["StudyInstanceUID"]) != exclude_study_id
+        ]
+        # Take top-k from filtered results
+        top_idxs = filtered_idxs[:self.top_k]
+        return [
+            {
+                "study_id": str(self.gold.iloc[i]["StudyInstanceUID"]),
+                "report": str(self.gold.iloc[i]["Report"]),
+                "labels": {
+                    label: int(self.gold.iloc[i][label])
+                    for label in LABEL_COLUMNS
+                },
+            }
+            for i in top_idxs
+        ]

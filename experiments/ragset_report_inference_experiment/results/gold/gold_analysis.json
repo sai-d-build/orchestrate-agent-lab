@@ -1,0 +1,1037 @@
+{
+  "dataset_level": {
+    "languages": [
+      {
+        "language": "English",
+        "report_count": 7,
+        "mcl_positive": 3,
+        "mcl_negative": 4
+      },
+      {
+        "language": "Spanish",
+        "report_count": 4,
+        "mcl_positive": 2,
+        "mcl_negative": 2
+      },
+      {
+        "language": "Greek",
+        "report_count": 1,
+        "mcl_positive": 1,
+        "mcl_negative": 0
+      },
+      {
+        "language": "Dutch",
+        "report_count": 1,
+        "mcl_positive": 1,
+        "mcl_negative": 0
+      },
+      {
+        "language": "Mixed_English_Dutch",
+        "report_count": 1,
+        "mcl_positive": 0,
+        "mcl_negative": 1
+      },
+      {
+        "language": "Mixed_English_Greek",
+        "report_count": 1,
+        "mcl_positive": 0,
+        "mcl_negative": 0
+      },
+      {
+        "language": "Mixed_English_Spanish",
+        "report_count": 1,
+        "mcl_positive": 0,
+        "mcl_negative": 0
+      }
+    ],
+    "report_styles": [
+      {
+        "style": "narrative_findings_impression",
+        "count": 6,
+        "description": "Free-text findings followed by impression section"
+      },
+      {
+        "style": "structured_sections",
+        "count": 5,
+        "description": "Labeled sections (OSSEOUS STRUCTURES, MEDIAL COMPARTMENT, etc.)"
+      },
+      {
+        "style": "impression_only",
+        "count": 2,
+        "description": "Only impression/summary provided"
+      },
+      {
+        "style": "bullet_list_findings",
+        "count": 2,
+        "description": "Bullet-point style findings"
+      },
+      {
+        "style": "mixed_narrative_bullet",
+        "count": 1,
+        "description": "Narrative with bullet summary at end"
+      }
+    ],
+    "clinical_scenarios": [
+      {
+        "scenario": "acute_trauma",
+        "count": 8,
+        "mcl_positive_rate": 0.75
+      },
+      {
+        "scenario": "chronic_degenerative",
+        "count": 4,
+        "mcl_positive_rate": 0.0
+      },
+      {
+        "scenario": "postoperative",
+        "count": 1,
+        "mcl_positive_rate": 1.0
+      },
+      {
+        "scenario": "unspecified_pain",
+        "count": 3,
+        "mcl_positive_rate": 0.0
+      }
+    ]
+  },
+  "linguistic": {
+    "negation_patterns": {
+      "MCL": [
+        {
+          "pattern": "intact",
+          "occurrences": 3,
+          "gold_negative": 3,
+          "gold_positive": 0,
+          "scope_clear": true,
+          "examples": [
+            "10170898615867673028696505248839028269",
+            "11382021393803389951964005983002209238",
+            "11548045715264151632153040089882701935"
+          ]
+        },
+        {
+          "pattern": "normal / within normal limits / sin alteraciones",
+          "occurrences": 5,
+          "gold_negative": 5,
+          "gold_positive": 0,
+          "scope_clear": true,
+          "examples": [
+            "10095687747295410396510538520594649149",
+            "10306159113324811538703788080836752052",
+            "11287937729196958426538087439102017580",
+            "11557620559191469069130827959098335840",
+            "11851412923016044948101698015974810604"
+          ]
+        },
+        {
+          "pattern": "no increased intensity",
+          "occurrences": 1,
+          "gold_negative": 1,
+          "gold_positive": 0,
+          "scope_clear": true,
+          "examples": [
+            "11287937729196958426538087439102017580"
+          ]
+        }
+      ]
+    },
+    "uncertainty_patterns": {
+      "MCL": [
+        {
+          "pattern": "suspect grade 2",
+          "occurrences": 2,
+          "gold_positive": 1,
+          "gold_negative": 0,
+          "note": "One in findings, one in impression - same study. No negative examples with 'suspect' language."
+        },
+        {
+          "pattern": "probable/likely not observed for MCL",
+          "occurrences": 0,
+          "gold_positive": 0,
+          "gold_negative": 0,
+          "note": "No examples of 'probable MCL tear' or 'likely MCL injury' in this subset."
+        }
+      ]
+    },
+    "historical_current_patterns": {
+      "MCL": [
+        {
+          "pattern": "acute trauma context",
+          "occurrences": 8,
+          "gold_positive": 6,
+          "gold_negative": 2,
+          "note": "All positive cases appear acute. Negative cases include both acute (with other injuries) and chronic."
+        },
+        {
+          "pattern": "chronic degenerative context",
+          "occurrences": 4,
+          "gold_positive": 0,
+          "gold_negative": 4,
+          "note": "Studies 10306159113324811538703788080836752052, 11851412923016044948101698015974810604 show chronic OA with MCL normal."
+        }
+      ]
+    },
+    "question_indication_patterns": {},
+    "abbreviations": {
+      "MCL": [
+        "MCL",
+        "LCM (Spanish)",
+        "έσω πλαγίου συνδέσµου (Greek)",
+        "mediale collaterale ligament (Dutch)",
+        "LCL used for lateral collateral, not MCL"
+      ]
+    },
+    "multilingual_terminology": {
+      "MCL_tear_rupture": {
+        "English": [
+          "complete tear",
+          "complete rupture",
+          "partial tear",
+          "grade 2 sprain",
+          "high-grade tear"
+        ],
+        "Spanish": [
+          "rotura parcial",
+          "rotura",
+          "esguince grado II"
+        ],
+        "Greek": [
+          "μερικής ρήξης (grade 2)",
+          "ασυνέχεια"
+        ],
+        "Dutch": [
+          "partiële scheur",
+          "graad 2",
+          "volledige ruptuur (not used for MCL in this set)"
+        ]
+      },
+      "MCL_intact_normal": {
+        "English": [
+          "intact",
+          "normal",
+          "no increased intensity"
+        ],
+        "Spanish": [
+          "dentro de límites normales",
+          "sin alteraciones significativas"
+        ],
+        "Greek": [],
+        "Dutch": []
+      }
+    }
+  },
+  "clinical": {
+    "anatomy": {
+      "MCL": {
+        "superficial_vs_deep": "Positive cases distinguish superficial vs deep components (studies 48348615349418615469875801439348424274, 64703506772167798469048460791472465039). Negative cases refer to 'MCL' or 'collateral ligaments' generally.",
+        "proximal_vs_mid_distal": "Proximal injuries: studies 1177..., 4834..., 6254... Mid/distal: study 6470... Complete rupture at joint line: study 6246...",
+        "associated_structures": "PMO (posteromedial oblique) mentioned in study 11548045715264151632153040089882701935 as intact when MCL intact. Deep MCL components (meniscofemoral, meniscotibial) described in study 6470... with partial tears."
+      }
+    },
+    "laterality": {
+      "MCL": {
+        "right_knee": 10,
+        "left_knee": 6,
+        "note": "Laterality not explicitly analyzed for label differences. Both sides show positive and negative cases."
+      }
+    },
+    "related_labels": {
+      "MCL_ACL": {
+        "co_occurrence_positive": 5,
+        "note": "5/8 MCL-positive cases also have ACL tears (complete or partial). 0/8 MCL-negative cases with ACL tears have MCL injury (studies 1017..., 1138..., 1155... have ACL tears but MCL intact)."
+      },
+      "MCL_medial_meniscus": {
+        "co_occurrence_positive": 4,
+        "note": "4/8 MCL-positive have medial meniscus tears. 2/8 MCL-negative have medial meniscus tears (studies 1030..., 1185...)."
+      },
+      "MCL_effusion": {
+        "co_occurrence_positive": 6,
+        "note": "6/8 MCL-positive have effusion. 5/8 MCL-negative have effusion. Not discriminative."
+      },
+      "MCL_contusion_fracture": {
+        "co_occurrence_positive": 5,
+        "note": "5/8 MCL-positive have bone contusion/fracture. 2/8 MCL-negative have contusion/fracture."
+      }
+    },
+    "confusing_findings": [
+      {
+        "finding": "periligamentous fluid/edema without explicit tear",
+        "studies": [
+          "62549354677638403845904556149868367236"
+        ],
+        "issue": "Only one example labeled positive. Unknown specificity."
+      },
+      {
+        "finding": "grouped collateral ligament assessment",
+        "studies": [
+          "10095687747295410396510538520594649149",
+          "11557620559191469069130827959098335840"
+        ],
+        "issue": "Two negative cases use grouped statement. Cannot verify if MCL specifically assessed."
+      }
+    ],
+    "difficult_cases": [
+      {
+        "study": "11771393824519892797114773408583976756",
+        "issue": "Only 'suspect grade 2' language, no explicit tear. Labeled positive. Borderline uncertainty."
+      },
+      {
+        "study": "62549354677638403845904556149868367236",
+        "issue": "Dutch report: 'slight thickening proximally with fluid superficial and deep' labeled positive. Impression says 'partial tear grade 2'. Findings less explicit."
+      }
+    ]
+  },
+  "label_specific": {
+    "MCL": {
+      "gold_positive_count": 8,
+      "gold_negative_count": 8,
+      "raw_observations": [
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.11771393824519892797114773408583976756",
+          "exact_text": "High signal in the soft tissue medial to the medial collateral ligament with mild increased signal intensity of proximal ligament, suspect grade 2 injury.",
+          "normalized_pattern": "high_signal_soft_tissue_medial_to_MCL + mild_increased_signal_proximal_MCL + suspect_grade_2",
+          "evidence_strength": "UNCERTAIN_POSITIVE",
+          "gold_label": 1,
+          "anatomical_scope": "proximal_MCL",
+          "certainty": "suspect",
+          "temporal_status": "acute",
+          "context": "findings_section",
+          "related_findings": [
+            "ACL_grade_1",
+            "bone_marrow_edema_bilateral",
+            "subcutaneous_edema_medial",
+            "effusion",
+            "synovitis"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.11771393824519892797114773408583976756",
+          "exact_text": "Suspect grade 2 injury of MCL with adjacent soft tissue edema over anteromedial aspect of right knee.",
+          "normalized_pattern": "suspect_grade_2_MCL_injury + adjacent_soft_tissue_edema",
+          "evidence_strength": "UNCERTAIN_POSITIVE",
+          "gold_label": 1,
+          "anatomical_scope": "MCL",
+          "certainty": "suspect",
+          "temporal_status": "acute",
+          "context": "impression",
+          "related_findings": [
+            "ACL_grade_1",
+            "bone_contusion",
+            "synovitis"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.12505035424093604269515328931488770819",
+          "exact_text": "Rotura parcial del LCM",
+          "normalized_pattern": "partial_tear_MCL",
+          "evidence_strength": "DEFINITE_POSITIVE",
+          "gold_label": 1,
+          "anatomical_scope": "MCL",
+          "certainty": "definite",
+          "temporal_status": "acute",
+          "context": "impression",
+          "related_findings": [
+            "ACL_tear",
+            "medial_meniscus_tear",
+            "lateral_meniscus_tear",
+            "effusion",
+            "bone_contusions"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.12606657226568558340797193167488111973",
+          "exact_text": "grade II ligamentous sprain (partial tear) of the medial collateral ligament",
+          "normalized_pattern": "grade_2_sprain_partial_tear_MCL",
+          "evidence_strength": "DEFINITE_POSITIVE",
+          "gold_label": 1,
+          "anatomical_scope": "MCL",
+          "certainty": "definite",
+          "temporal_status": "acute",
+          "context": "findings_and_impression",
+          "related_findings": [
+            "lateral_meniscus_tear",
+            "ACL_complete_tear",
+            "PCL_intact",
+            "no_effusion"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.32321830776739689645700555055955725945",
+          "exact_text": "Οιδηµατώδης απεικόνιση και ασυνέχεια στην εγγύς µοίρα του έσω πλαγίου συνδέσµου µε παρουσία οιδήµατος πέριξ στο πλαίσιο µερικής ρήξης (grade 2)",
+          "normalized_pattern": "edematous_depiction_discontinuity_proximal_MCL + surrounding_edema_partial_tear_grade_2",
+          "evidence_strength": "DEFINITE_POSITIVE",
+          "gold_label": 1,
+          "anatomical_scope": "proximal_MCL",
+          "certainty": "definite",
+          "temporal_status": "acute",
+          "context": "findings",
+          "related_findings": [
+            "ACL_near_complete_tear",
+            "effusion",
+            "Baker_cyst",
+            "medial_meniscus_extrusion",
+            "medial_OA"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.48348615349418615469875801439348424274",
+          "exact_text": "Engrosamiento y aumento de señal con pérdida parcial de la continuidad del tercio medio proximal del componente superficial del ligamento colateral medial con edema de las partes blandas adyacentes",
+          "normalized_pattern": "thickening_increased_signal_partial_continuity_loss_proximal_superficial_MCL + adjacent_soft_tissue_edema",
+          "evidence_strength": "DEFINITE_POSITIVE",
+          "gold_label": 1,
+          "anatomical_scope": "proximal_superficial_MCL",
+          "certainty": "definite",
+          "temporal_status": "acute",
+          "context": "findings",
+          "related_findings": [
+            "medial_meniscus_posterior_horn_signal",
+            "mild_effusion",
+            "Baker_cyst",
+            "quadriceps_enthesopathy"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.48348615349418615469875801439348424274",
+          "exact_text": "Signos de un esguince grado II del componente superficial del ligamento colateral medial",
+          "normalized_pattern": "grade_2_sprain_superficial_MCL",
+          "evidence_strength": "DEFINITE_POSITIVE",
+          "gold_label": 1,
+          "anatomical_scope": "superficial_MCL",
+          "certainty": "definite",
+          "temporal_status": "acute",
+          "context": "impression",
+          "related_findings": [
+            "medial_meniscus_partial_lesion",
+            "mild_effusion",
+            "Baker_cyst"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.62465595376489211274225312453216559395",
+          "exact_text": "Complete rupture of the MCL at the level of the medial jointline. The proximal fibers are squiggly.",
+          "normalized_pattern": "complete_rupture_MCL_medial_jointline + proximal_fibers_squiggly",
+          "evidence_strength": "DEFINITE_POSITIVE",
+          "gold_label": 1,
+          "anatomical_scope": "MCL_mid_substance",
+          "certainty": "definite",
+          "temporal_status": "acute",
+          "context": "findings",
+          "related_findings": [
+            "medial_meniscus_vertical_tear",
+            "ACL_complete_rupture",
+            "PCL_complete_rupture",
+            "LCL_high_grade_partial_tear",
+            "popliteus_sprain",
+            "subchondral_fracture_lateral_tibial_plateau",
+            "bone_bruises"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.62549354677638403845904556149868367236",
+          "exact_text": "Licht verdikt voorkomen mediale collaterale ligament, proximaal, met vocht oppervlakkig en diep aan het mediale collaterale ligament",
+          "normalized_pattern": "slight_thickening_MCL_proximal + fluid_superficial_deep_MCL",
+          "evidence_strength": "PROBABLE_POSITIVE",
+          "gold_label": 1,
+          "anatomical_scope": "proximal_MCL",
+          "certainty": "probable",
+          "temporal_status": "acute",
+          "context": "findings",
+          "related_findings": [
+            "ACL_complete_rupture",
+            "impaction_fracture_lateral_femoral_condyle",
+            "bone_edema",
+            "patellar_tendinosis"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.62549354677638403845904556149868367236",
+          "exact_text": "Partiële scheur proximaal op het mediale collaterale ligament, graad 2",
+          "normalized_pattern": "partial_tear_proximal_MCL_grade_2",
+          "evidence_strength": "DEFINITE_POSITIVE",
+          "gold_label": 1,
+          "anatomical_scope": "proximal_MCL",
+          "certainty": "definite",
+          "temporal_status": "acute",
+          "context": "impression",
+          "related_findings": [
+            "ACL_complete_rupture",
+            "impaction_fracture",
+            "patellar_tendinosis"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.64703506772167798469048460791472465039",
+          "exact_text": "Complete tear of the superficial portion at the mid to distal third. Moderate grade partial tear of the deep meniscal femoral and meniscal tibial components with partial meniscocapsular separation of the medial meniscal body.",
+          "normalized_pattern": "complete_tear_superficial_MCL_mid_distal + partial_tear_deep_MCL_components + meniscocapsular_separation",
+          "evidence_strength": "DEFINITE_POSITIVE",
+          "gold_label": 1,
+          "anatomical_scope": "superficial_MCL_mid_distal + deep_MCL",
+          "certainty": "definite",
+          "temporal_status": "acute",
+          "context": "findings",
+          "related_findings": [
+            "tibial_tuberosity_avulsion_fracture",
+            "Segond_fracture",
+            "ACL_avulsion_laxity",
+            "PCL_intact_laxity",
+            "LCL_low_grade_sprain",
+            "medial_meniscus_tear",
+            "lateral_meniscus_tears",
+            "medial_retinaculum_tear",
+            "posteromedial_corner_injury",
+            "large_effusion"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.64703506772167798469048460791472465039",
+          "exact_text": "High-grade tear of the medial collateral ligament.",
+          "normalized_pattern": "high_grade_tear_MCL",
+          "evidence_strength": "DEFINITE_POSITIVE",
+          "gold_label": 1,
+          "anatomical_scope": "MCL",
+          "certainty": "definite",
+          "temporal_status": "acute",
+          "context": "impression",
+          "related_findings": [
+            "multiple_fractures",
+            "multiple_ligament_tears",
+            "meniscal_tears",
+            "large_effusion"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.10095687747295410396510538520594649149",
+          "exact_text": "Ligamentos cruzados y colaterales dentro de límites normales.",
+          "normalized_pattern": "collateral_ligaments_within_normal_limits",
+          "evidence_strength": "EXPLICIT_NEGATIVE",
+          "gold_label": 0,
+          "anatomical_scope": "MCL_LCL",
+          "certainty": "definite",
+          "temporal_status": "unspecified",
+          "context": "findings",
+          "related_findings": [
+            "lateral_meniscus_marginal_amputation",
+            "medial_meniscus_normal",
+            "focal_chondral_ulcer_trochlea",
+            "mild_effusion"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.10170898615867673028696505248839028269",
+          "exact_text": "The MCL is intact.",
+          "normalized_pattern": "MCL_intact",
+          "evidence_strength": "EXPLICIT_NEGATIVE",
+          "gold_label": 0,
+          "anatomical_scope": "MCL",
+          "certainty": "definite",
+          "temporal_status": "unspecified",
+          "context": "findings",
+          "related_findings": [
+            "ACL_intact",
+            "PCL_preserved",
+            "medial_meniscus_not_torn",
+            "lateral_meniscus_horizontal_tear",
+            "osteochondral_defects",
+            "moderate_effusion",
+            "synovitis"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.10306159113324811538703788080836752052",
+          "exact_text": "Medial collateral ligament (MCL): Normal.",
+          "normalized_pattern": "MCL_normal",
+          "evidence_strength": "EXPLICIT_NEGATIVE",
+          "gold_label": 0,
+          "anatomical_scope": "MCL",
+          "certainty": "definite",
+          "temporal_status": "chronic",
+          "context": "structured_section_COLLATERAL_LIGAMENTS",
+          "related_findings": [
+            "medial_meniscus_extensive_tear_extrusion",
+            "medial_OA_severe",
+            "lateral_meniscus_degenerative",
+            "PF_OA",
+            "ACL_normal",
+            "PCL_normal",
+            "LCL_normal",
+            "small_effusion"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.11287937729196958426538087439102017580",
+          "exact_text": "There is no increased intensity in the ACL, MCL and LCL, it appears to be normal",
+          "normalized_pattern": "no_increased_intensity_MCL_normal",
+          "evidence_strength": "EXPLICIT_NEGATIVE",
+          "gold_label": 0,
+          "anatomical_scope": "MCL",
+          "certainty": "definite",
+          "temporal_status": "unspecified",
+          "context": "findings",
+          "related_findings": [
+            "PCL_complete_tear",
+            "synovitis",
+            "massive_effusion",
+            "suprapatellar_bursitis",
+            "plica",
+            "DVT_possible"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.11382021393803389951964005983002209238",
+          "exact_text": "The medial and lateral collateral ligament complexes are intact.",
+          "normalized_pattern": "MCL_LCL_complexes_intact",
+          "evidence_strength": "EXPLICIT_NEGATIVE",
+          "gold_label": 0,
+          "anatomical_scope": "MCL_complex",
+          "certainty": "definite",
+          "temporal_status": "acute",
+          "context": "findings",
+          "related_findings": [
+            "medial_meniscus_vertical_tear",
+            "ACL_complete_tear",
+            "PCL_intact",
+            "no_effusion"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.11548045715264151632153040089882701935",
+          "exact_text": "The medial collateral ligament complexes are intact. The posteromedial oblique ligament is intact.",
+          "normalized_pattern": "MCL_complex_intact + PMO_intact",
+          "evidence_strength": "EXPLICIT_NEGATIVE",
+          "gold_label": 0,
+          "anatomical_scope": "MCL_complex + PMO",
+          "certainty": "definite",
+          "temporal_status": "acute",
+          "context": "findings",
+          "related_findings": [
+            "lateral_meniscus_complex_tear",
+            "ACL_interstitial_tear",
+            "LCL_grade_2_sprain",
+            "popliteus_partial_tear",
+            "effusion_hemarthrosis",
+            "popliteus_contusion"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.11557620559191469069130827959098335840",
+          "exact_text": "LCP y ligamentos colaterales sin alteraciones significativas.",
+          "normalized_pattern": "PCL_collateral_ligaments_no_significant_alterations",
+          "evidence_strength": "EXPLICIT_NEGATIVE",
+          "gold_label": 0,
+          "anatomical_scope": "MCL_LCL",
+          "certainty": "definite",
+          "temporal_status": "acute",
+          "context": "findings",
+          "related_findings": [
+            "ACL_complete_tear",
+            "lateral_meniscus_incomplete_radial_tear",
+            "lateral_OA",
+            "effusion_hemarthrosis"
+          ]
+        },
+        {
+          "study_instance_uid": "1.2.826.0.1.3680043.8.498.11851412923016044948101698015974810604",
+          "exact_text": "Medial collateral ligament (MCL): Normal.",
+          "normalized_pattern": "MCL_normal",
+          "evidence_strength": "EXPLICIT_NEGATIVE",
+          "gold_label": 0,
+          "anatomical_scope": "MCL",
+          "certainty": "definite",
+          "temporal_status": "chronic",
+          "context": "structured_section_COLLATERAL_LIGAMENTS",
+          "related_findings": [
+            "medial_meniscus_root_tear",
+            "medial_OA",
+            "lateral_meniscus_tear",
+            "lateral_OA",
+            "PF_OA",
+            "ACL_normal",
+            "PCL_normal",
+            "LCL_normal",
+            "small_effusion",
+            "Baker_cyst_trace",
+            "patellar_tendinosis"
+          ]
+        }
+      ],
+      "pattern_frequencies": [
+        {
+          "pattern": "explicit_tear_rupture_MCL",
+          "total_occurrences": 6,
+          "gold_positive": 6,
+          "gold_negative": 0,
+          "positive_rate": 1.0,
+          "unique_studies": 6,
+          "sample_size": "ADEQUATE"
+        },
+        {
+          "pattern": "grade_2_sprain_partial_tear_MCL",
+          "total_occurrences": 4,
+          "gold_positive": 4,
+          "gold_negative": 0,
+          "positive_rate": 1.0,
+          "unique_studies": 4,
+          "sample_size": "SMALL"
+        },
+        {
+          "pattern": "suspect_grade_2_MCL + soft_tissue_edema",
+          "total_occurrences": 1,
+          "gold_positive": 1,
+          "gold_negative": 0,
+          "positive_rate": 1.0,
+          "unique_studies": 1,
+          "sample_size": "SMALL"
+        },
+        {
+          "pattern": "thickening_increased_signal_partial_continuity_loss_MCL",
+          "total_occurrences": 1,
+          "gold_positive": 1,
+          "gold_negative": 0,
+          "positive_rate": 1.0,
+          "unique_studies": 1,
+          "sample_size": "SMALL"
+        },
+        {
+          "pattern": "slight_thickening_MCL + fluid_around_MCL",
+          "total_occurrences": 1,
+          "gold_positive": 1,
+          "gold_negative": 0,
+          "positive_rate": 1.0,
+          "unique_studies": 1,
+          "sample_size": "SMALL"
+        },
+        {
+          "pattern": "MCL_intact_normal_within_limits",
+          "total_occurrences": 8,
+          "gold_positive": 0,
+          "gold_negative": 8,
+          "positive_rate": 0.0,
+          "unique_studies": 8,
+          "sample_size": "ADEQUATE"
+        },
+        {
+          "pattern": "collateral_ligaments_normal_grouped",
+          "total_occurrences": 2,
+          "gold_positive": 0,
+          "gold_negative": 2,
+          "positive_rate": 0.0,
+          "unique_studies": 2,
+          "sample_size": "SMALL"
+        }
+      ],
+      "contradictions": [
+        {
+          "pattern": "MCL_intact_normal",
+          "contradiction_type": "NONE",
+          "explanation": "All 8 occurrences with explicit negative language map to gold_negative=0. No contradiction."
+        },
+        {
+          "pattern": "suspect_grade_2_MCL",
+          "contradiction_type": "INSUFFICIENT_EVIDENCE",
+          "explanation": "Only 1 occurrence (study 1177...). Cannot determine if 'suspect' language alone would ever be labeled negative. No negative examples with similar uncertainty language for MCL."
+        }
+      ],
+      "safe_rules": [
+        {
+          "rule": "Explicit tear/rupture language (complete tear, partial tear, rotura, ρήξη, scheur) for MCL → label 1",
+          "supporting_studies": [
+            "12505035424093604269515328931488770819",
+            "12606657226568558340797193167488111973",
+            "32321830776739689645700555055955725945",
+            "48348615349418615469875801439348424274",
+            "62465595376489211274225312453216559395",
+            "62549354677638403845904556149868367236",
+            "64703506772167798469048460791472465039"
+          ],
+          "evidence_strength": "DEFINITE_POSITIVE",
+          "count": 7
+        },
+        {
+          "rule": "Grade 2 sprain/partial tear explicitly stated for MCL → label 1",
+          "supporting_studies": [
+            "12606657226568558340797193167488111973",
+            "32321830776739689645700555055955725945",
+            "48348615349418615469875801439348424274",
+            "62549354677638403845904556149868367236"
+          ],
+          "evidence_strength": "DEFINITE_POSITIVE",
+          "count": 4
+        },
+        {
+          "rule": "Explicit negative statements (intact, normal, within normal limits, sin alteraciones) for MCL → label 0",
+          "supporting_studies": [
+            "10095687747295410396510538520594649149",
+            "10170898615867673028696505248839028269",
+            "10306159113324811538703788080836752052",
+            "11287937729196958426538087439102017580",
+            "11382021393803389951964005983002209238",
+            "11548045715264151632153040089882701935",
+            "11557620559191469069130827959098335840",
+            "11851412923016044948101698015974810604"
+          ],
+          "evidence_strength": "EXPLICIT_NEGATIVE",
+          "count": 8
+        }
+      ],
+      "unsafe_shortcuts": [
+        {
+          "pattern": "fluid/edema around MCL alone",
+          "reason": "Only 1 positive example (study 62549354677638403845904556149868367236) with 'slight thickening + fluid superficial and deep' labeled positive. No negative examples with periligamentous fluid to compare. Could be non-specific.",
+          "gold_evidence": "Single positive case, no negative counterexamples"
+        },
+        {
+          "pattern": "suspect/possible language for MCL",
+          "reason": "Only 1 example (study 11771393824519892797114773408583976756) with 'suspect grade 2' labeled positive. Unknown if 'suspect' alone would be negative.",
+          "gold_evidence": "Single positive case, no negative counterexamples"
+        },
+        {
+          "pattern": "MCL mentioned in grouped collateral ligament statement",
+          "reason": "Two negative cases use grouped statements ('collateral ligaments normal'). Cannot assume grouped normal always means MCL normal if other ligaments abnormal.",
+          "gold_evidence": "Studies 10095687747295410396510538520594649149, 11557620559191469069130827959098335840"
+        }
+      ],
+      "unresolved_rules": [
+        {
+          "question": "Does 'suspect grade 2 MCL injury' without explicit tear language always map to positive?",
+          "evidence": "Only 1 example (study 11771393824519892797114773408583976756) - positive. Need negative examples with similar uncertainty language.",
+          "affected_studies": [
+            "11771393824519892797114773408583976756"
+          ]
+        },
+        {
+          "question": "How are chronic/degenerative MCL changes (thickening without acute tear) labeled?",
+          "evidence": "No examples in this subset. All positive cases appear acute traumatic.",
+          "affected_studies": []
+        },
+        {
+          "question": "Is isolated deep MCL tear without superficial involvement labeled positive?",
+          "evidence": "Study 64703506772167798469048460791472465039 has both superficial complete tear and deep partial tear. No isolated deep tear examples.",
+          "affected_studies": []
+        },
+        {
+          "question": "Does MCL sprain grade 1 (minor) map to positive or negative?",
+          "evidence": "No grade 1 examples. Only grade 2 and complete tears in positives.",
+          "affected_studies": []
+        }
+      ],
+      "anatomy_specifics": {
+        "superficial_MCL": {
+          "positive_patterns": [
+            "complete_tear_superficial_mid_distal",
+            "grade_2_sprain_superficial",
+            "partial_continuity_loss_superficial_proximal"
+          ],
+          "negative_patterns": [
+            "normal"
+          ]
+        },
+        "deep_MCL": {
+          "positive_patterns": [
+            "partial_tear_deep_components_with_meniscocapsular_separation"
+          ],
+          "negative_patterns": [
+            "normal",
+            "PMO_intact"
+          ]
+        },
+        "proximal_MCL": {
+          "positive_patterns": [
+            "grade_2_proximal",
+            "thickening_signal_proximal",
+            "suspect_grade_2_proximal",
+            "slight_thickening_proximal_fluid"
+          ],
+          "negative_patterns": [
+            "normal"
+          ]
+        },
+        "MCL_complex": {
+          "positive_patterns": [
+            "high_grade_tear_MCL",
+            "complete_rupture_MCL"
+          ],
+          "negative_patterns": [
+            "complex_intact",
+            "collateral_ligaments_normal"
+          ]
+        }
+      }
+    },
+    "ACL": {
+      "gold_positive_count": 0,
+      "gold_negative_count": 0,
+      "raw_observations": [],
+      "pattern_frequencies": [],
+      "contradictions": [],
+      "safe_rules": [],
+      "unsafe_shortcuts": [],
+      "unresolved_rules": [
+        {
+          "question": "No gold labels provided for ACL in this subset. Cannot analyze.",
+          "evidence": "Only MCL labels supplied in input data.",
+          "affected_studies": []
+        }
+      ]
+    },
+    "Medial Meniscus": {
+      "gold_positive_count": 0,
+      "gold_negative_count": 0,
+      "raw_observations": [],
+      "pattern_frequencies": [],
+      "contradictions": [],
+      "safe_rules": [],
+      "unsafe_shortcuts": [],
+      "unresolved_rules": [
+        {
+          "question": "No gold labels provided for Medial Meniscus in this subset. Cannot analyze.",
+          "evidence": "Only MCL labels supplied in input data.",
+          "affected_studies": []
+        }
+      ]
+    },
+    "Lateral Meniscus": {
+      "gold_positive_count": 0,
+      "gold_negative_count": 0,
+      "raw_observations": [],
+      "pattern_frequencies": [],
+      "contradictions": [],
+      "safe_rules": [],
+      "unsafe_shortcuts": [],
+      "unresolved_rules": [
+        {
+          "question": "No gold labels provided for Lateral Meniscus in this subset. Cannot analyze.",
+          "evidence": "Only MCL labels supplied in input data.",
+          "affected_studies": []
+        }
+      ]
+    },
+    "Medial OA": {
+      "gold_positive_count": 0,
+      "gold_negative_count": 0,
+      "raw_observations": [],
+      "pattern_frequencies": [],
+      "contradictions": [],
+      "safe_rules": [],
+      "unsafe_shortcuts": [],
+      "unresolved_rules": [
+        {
+          "question": "No gold labels provided for Medial OA in this subset. Cannot analyze.",
+          "evidence": "Only MCL labels supplied in input data.",
+          "affected_studies": []
+        }
+      ]
+    },
+    "Lateral OA": {
+      "gold_positive_count": 0,
+      "gold_negative_count": 0,
+      "raw_observations": [],
+      "pattern_frequencies": [],
+      "contradictions": [],
+      "safe_rules": [],
+      "unsafe_shortcuts": [],
+      "unresolved_rules": [
+        {
+          "question": "No gold labels provided for Lateral OA in this subset. Cannot analyze.",
+          "evidence": "Only MCL labels supplied in input data.",
+          "affected_studies": []
+        }
+      ]
+    },
+    "PF OA": {
+      "gold_positive_count": 0,
+      "gold_negative_count": 0,
+      "raw_observations": [],
+      "pattern_frequencies": [],
+      "contradictions": [],
+      "safe_rules": [],
+      "unsafe_shortcuts": [],
+      "unresolved_rules": [
+        {
+          "question": "No gold labels provided for PF OA in this subset. Cannot analyze.",
+          "evidence": "Only MCL labels supplied in input data.",
+          "affected_studies": []
+        }
+      ]
+    },
+    "Effusion": {
+      "gold_positive_count": 0,
+      "gold_negative_count": 0,
+      "raw_observations": [],
+      "pattern_frequencies": [],
+      "contradictions": [],
+      "safe_rules": [],
+      "unsafe_shortcuts": [],
+      "unresolved_rules": [
+        {
+          "question": "No gold labels provided for Effusion in this subset. Cannot analyze.",
+          "evidence": "Only MCL labels supplied in input data.",
+          "affected_studies": []
+        }
+      ]
+    },
+    "Synovitis": {
+      "gold_positive_count": 0,
+      "gold_negative_count": 0,
+      "raw_observations": [],
+      "pattern_frequencies": [],
+      "contradictions": [],
+      "safe_rules": [],
+      "unsafe_shortcuts": [],
+      "unresolved_rules": [
+        {
+          "question": "No gold labels provided for Synovitis in this subset. Cannot analyze.",
+          "evidence": "Only MCL labels supplied in input data.",
+          "affected_studies": []
+        }
+      ]
+    },
+    "Baker's": {
+      "gold_positive_count": 0,
+      "gold_negative_count": 0,
+      "raw_observations": [],
+      "pattern_frequencies": [],
+      "contradictions": [],
+      "safe_rules": [],
+      "unsafe_shortcuts": [],
+      "unresolved_rules": [
+        {
+          "question": "No gold labels provided for Baker's cyst in this subset. Cannot analyze.",
+          "evidence": "Only MCL labels supplied in input data.",
+          "affected_studies": []
+        }
+      ]
+    },
+    "Contusion": {
+      "gold_positive_count": 0,
+      "gold_negative_count": 0,
+      "raw_observations": [],
+      "pattern_frequencies": [],
+      "contradictions": [],
+      "safe_rules": [],
+      "unsafe_shortcuts": [],
+      "unresolved_rules": [
+        {
+          "question": "No gold labels provided for Contusion in this subset. Cannot analyze.",
+          "evidence": "Only MCL labels supplied in input data.",
+          "affected_studies": []
+        }
+      ]
+    },
+    "Fracture": {
+      "gold_positive_count": 0,
+      "gold_negative_count": 0,
+      "raw_observations": [],
+      "pattern_frequencies": [],
+      "contradictions": [],
+      "safe_rules": [],
+      "unsafe_shortcuts": [],
+      "unresolved_rules": [
+        {
+          "question": "No gold labels provided for Fracture in this subset. Cannot analyze.",
+          "evidence": "Only MCL labels supplied in input data.",
+          "affected_studies": []
+        }
+      ]
+    }
+  }
+}
