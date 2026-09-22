@@ -11,11 +11,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import yaml as yaml_mod
+from experiments.ragset_report_inference_experiment.src.ragset_inference.policy_loader import get_canonical_policy_text
 from experiments.ragset_report_inference_experiment.src.ragset_inference.data import (
     load_train, split_gold, LABEL_COLUMNS,
 )
 from experiments.ragset_report_inference_experiment.src.ragset_inference.gold import (
-    analyze_gold, format_gold_examples, label_profile_text,
+    analyze_gold, format_gold_examples,
 )
 from experiments.ragset_report_inference_experiment.src.ragset_inference.retrieval import GoldRetriever
 from experiments.ragset_report_inference_experiment.src.ragset_inference.models import InferenceModel, ValidatorModel
@@ -30,19 +31,31 @@ def make_infer_fn(model, inf_cfg, trace_collector, labels, gold_analysis):
     gold_examples is now passed per-call via kwargs to ensure target-specific
     retrieval context is used.
 
-    trace_collector: if provided (list), trace records are appended to it instead of writing to file.
+    trace_collector: if provided (dict keyed by report_id), trace records are stored by report_id.
                      if None, traces are written directly via write_trace (sequential mode).
     """
 
     def infer_fn(**kwargs):
-        user = inf_cfg["user_prompt_template"].format(
-            original_report=kwargs["report"],
-            gold_analysis=gold_analysis,
-            retrieved_gold_examples=kwargs.get("gold_examples", ""),
-        )
-        report_id = kwargs["report_id"]
-        # Extract validator_feedback for retry awareness (NOT as evidence)
+        template_vars = {
+            "original_report": kwargs["report"],
+            "gold_analysis": gold_analysis,
+            "retrieved_gold_examples": kwargs.get("gold_examples", ""),
+        }
         validator_feedback = kwargs.get("validator_feedback")
+        if validator_feedback:
+            feedback_json = json.dumps(validator_feedback, ensure_ascii=False, indent=2)
+            template_vars["validator_feedback_section"] = (
+                "VALIDATOR FEEDBACK (for reconsideration, NOT as evidence):\n"
+                f"{feedback_json}\n\n"
+                "Re-read the ORIGINAL_REPORT from scratch. Validator feedback identifies a disputed interpretation; "
+                "it is not automatically ground truth. Recompute the affected labels using the ORIGINAL_REPORT "
+                "and GOLD ANNOTATION POLICY. Do not blindly copy the validator correction."
+            )
+        else:
+            template_vars["validator_feedback_section"] = ""
+        
+        user = inf_cfg["user_prompt_template"].format(**template_vars)
+        report_id = kwargs["report_id"]
         try:
             prediction = model.run(inf_cfg["system_prompt"], user, validator_feedback=validator_feedback)
             # Get actual model from response if available (OpenRouter returns routed model)
@@ -58,7 +71,7 @@ def make_infer_fn(model, inf_cfg, trace_collector, labels, gold_analysis):
                 "actual_model": actual_model,
             }
             if trace_collector is not None:
-                trace_collector.append(trace_record)
+                trace_collector[report_id] = trace_record
             else:
                 # Sequential mode - write directly (requires trace_path global or similar)
                 pass  # Not used in parallel mode
@@ -75,7 +88,7 @@ def make_infer_fn(model, inf_cfg, trace_collector, labels, gold_analysis):
                 "error": str(e),
             }
             if trace_collector is not None:
-                trace_collector.append(trace_record)
+                trace_collector[report_id] = trace_record
             raise
 
     return infer_fn
@@ -84,7 +97,7 @@ def make_infer_fn(model, inf_cfg, trace_collector, labels, gold_analysis):
 def make_validate_fn(model, val_cfg, trace_collector, labels, gold_analysis):
     """Factory that creates a validate closure with captured dependencies.
 
-    trace_collector: if provided (list), trace records are appended to it instead of writing to file.
+    trace_collector: if provided (dict keyed by report_id), trace records are stored by report_id.
                      if None, traces are written directly via write_trace (sequential mode).
     """
 
@@ -93,7 +106,7 @@ def make_validate_fn(model, val_cfg, trace_collector, labels, gold_analysis):
             original_report=kwargs["report"],
             gold_analysis=gold_analysis,
             model_1_prediction=kwargs["prediction"].model_dump_json(),
-            retrieved_gold_examples="",
+            retrieved_gold_examples=kwargs.get("gold_examples", ""),
         )
         report_id = kwargs["report_id"]
         try:
@@ -110,7 +123,7 @@ def make_validate_fn(model, val_cfg, trace_collector, labels, gold_analysis):
                 "actual_model": actual_model,
             }
             if trace_collector is not None:
-                trace_collector.append(trace_record)
+                trace_collector[report_id] = trace_record
             return validation
         except Exception as e:
             trace_record = {
@@ -124,7 +137,7 @@ def make_validate_fn(model, val_cfg, trace_collector, labels, gold_analysis):
                 "error": str(e),
             }
             if trace_collector is not None:
-                trace_collector.append(trace_record)
+                trace_collector[report_id] = trace_record
             raise
 
     return validate_fn
@@ -149,16 +162,23 @@ def run_heldout_evaluation(
             f"STUDY {x['study_id']}\nLABELS: {x['labels']}\nREPORT:\n{x['report']}"
             for x in retrieved
         )
-        analysis = analyze_gold(gold_df)
+        # Use canonical policy for heldout evaluation
+        root = Path(__file__).resolve().parents[3]
+        exp = root / "experiments/ragset_report_inference_experiment"
+        gold_analysis_text = get_canonical_policy_text(
+            csv_path=str(Path(__file__).resolve().parents[3] / "train.csv"),
+            gold_analysis_path=str(Path(__file__).resolve().parents[3] / "experiments/ragset_report_inference_experiment/results/gold/gold_analysis.json"),
+            policy_path=str(Path(__file__).resolve().parents[3] / "config/ragset_label_policy.yaml")
+        )
         context = {
-            "gold_analysis": label_profile_text(analysis),
+            "gold_analysis": gold_analysis_text,
             "gold_examples": relevant,
         }
         # Use trace collectors for heldout eval (sequential, but with trace collection)
-        infer_traces = []
-        validate_traces = []
-        infer_fn = make_infer_fn(model1, inf_cfg, infer_traces, labels, context["gold_analysis"])
-        validate_fn = make_validate_fn(model2, val_cfg, validate_traces, labels, context["gold_analysis"])
+        infer_traces = {}
+        validate_traces = {}
+        infer_fn = make_infer_fn(model1, inf_cfg, infer_traces, labels, gold_analysis_text)
+        validate_fn = make_validate_fn(model2, val_cfg, validate_traces, labels, gold_analysis_text)
         result = run_report(
             report_id=report_id,
             report=report,
@@ -169,9 +189,9 @@ def run_heldout_evaluation(
             labels=labels,
         )
         # Write collected traces
-        for trace in infer_traces:
+        for trace in infer_traces.values():
             write_trace(trace_path, **trace)
-        for trace in validate_traces:
+        for trace in validate_traces.values():
             write_trace(trace_path, **trace)
         
         pred = result["final_prediction"]
@@ -240,9 +260,9 @@ def worker_process_chunk(
     Each report goes through the full inference+validation loop.
     Results and traces are sent to result_queue for the main thread to write.
     """
-    # Create per-worker trace collectors
-    infer_traces = []
-    validate_traces = []
+    # Create per-worker trace collectors (dict keyed by report_id)
+    infer_traces = {}
+    validate_traces = {}
     
     # Create per-worker closures with trace collectors
     infer_fn = make_infer_fn(model1, inf_cfg, infer_traces, labels, gold_analysis_text)
@@ -302,13 +322,11 @@ def worker_process_chunk(
             # Queue prediction for writer
             result_queue.put({"type": "prediction", "data": serializable})
 
-            # Queue trace records from collectors
-            for trace in infer_traces:
-                if trace["report_id"] == report_id:
-                    result_queue.put({"type": "trace", "data": trace})
-            for trace in validate_traces:
-                if trace["report_id"] == report_id:
-                    result_queue.put({"type": "trace", "data": trace})
+            # Queue trace records from collectors (direct lookup by report_id)
+            if report_id in infer_traces:
+                result_queue.put({"type": "trace", "data": infer_traces[report_id]})
+            if report_id in validate_traces:
+                result_queue.put({"type": "trace", "data": validate_traces[report_id]})
 
             result_queue.put({"type": "progress", "report_id": report_id})
 
@@ -345,9 +363,17 @@ def main(limit: int | None = None, resume: bool = False, overwrite: bool = False
     labels = labels_cfg["labels"]
     df = load_train(root / cfg["source"]["path"])
     gold, unlabeled = split_gold(df)
-    analysis = analyze_gold(gold)
     gold_examples = format_gold_examples(gold)
     retriever = GoldRetriever(gold, top_k=cfg["retrieval"]["top_k"])
+
+    # Load canonical policy with validation gate
+    root = Path(__file__).resolve().parents[3]
+    exp = root / "experiments/ragset_report_inference_experiment"
+    gold_analysis_text = get_canonical_policy_text(
+        csv_path=str(root / "train.csv"),
+        gold_analysis_path=str(exp / "results/gold/gold_analysis.json"),
+        policy_path=str(root / "config/ragset_label_policy.yaml")
+    )
 
     # Load model profiles from config/models.yaml
     models_cfg = yaml_mod.safe_load(
@@ -508,7 +534,6 @@ def main(limit: int | None = None, resume: bool = False, overwrite: bool = False
         print("No reports to process.")
         return
 
-    gold_analysis_text = label_profile_text(analysis)
     max_attempts = cfg["loop"]["max_attempts"]
 
     # Thread-safe queue for results

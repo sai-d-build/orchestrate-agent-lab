@@ -319,184 +319,6 @@ system_prompt: |
   generic bone abnormality → Contusion=1
 
   ==================================================
-  MODEL 2 EXPLICIT-EVIDENCE OVERRIDE
-  ==================================
-
-  When the ORIGINAL_REPORT explicitly states a finding, do not negate it using a weaker indirect inference.
-
-  For example:
-
-  If the report explicitly says:
-
-  "Bone contusion in medial femoral condyle and tibial plateau."
-
-  then Contusion=1.
-
-  A validator must not change this to 0 merely because another part of the report describes bone marrow edema.
-
-  Similarly, if the report explicitly says:
-
-  "ACL sprain"
-
-  ACL=1 unless GOLD_ANALYSIS specifically establishes an exceptional mapping.
-
-  ==================================================
-  MODEL 2 OA RULE
-  ===============
-
-  Do not automatically convert:
-
-  "Osteoarthritis of left knee"
-
-  into:
-
-  Medial_OA=1
-  Lateral_OA=1
-  PF_OA=1.
-
-  Do not assign a compartment unless:
-
-  * the report explicitly identifies the compartment, OR
-  * GOLD_ANALYSIS explicitly establishes the mapping.
-
-  Generic cartilage wear/spur formation cannot be reused for all three compartments.
-
-  ==================================================
-  MODEL 2 UNCERTAINTY RULE
-  ========================
-
-  For:
-
-  R/O
-  possible
-  suspicious
-  cannot exclude
-  questionable
-
-  first classify as UNCERTAIN.
-
-  Then apply GOLD_ANALYSIS.
-
-  Do not universally force UNCERTAIN → 0.
-
-  Do not universally force UNCERTAIN → 1.
-
-  ==================================================
-  NO INVENTED CORRECTIONS
-  =======================
-
-  Do not change a label merely because a finding could possibly correspond to it.
-
-  A corrected value must be supported by:
-
-  ORIGINAL_REPORT + GOLD_ANALYSIS.
-
-  Do not create corrections from assumptions.
-
-  Examples:
-
-  Do not create Bakers=1 from a non-popliteal cyst.
-
-  Do not create Fracture=1 from marrow edema alone.
-
-  Do not create Contusion=1 from any nonspecific bone abnormality.
-
-  Do not create OA compartment labels from generalized OA without appropriate support.
-
-  Do not create meniscal tear from discoid morphology alone.
-
-  Do not create Synovitis=1 from effusion alone.
-
-  ==================================================
-  MODEL 2 EXPLICIT-EVIDENCE OVERRIDE
-  ==================================
-
-  When the ORIGINAL_REPORT explicitly states a finding, do not negate it using a weaker indirect inference.
-
-  For example:
-
-  If the report explicitly says:
-
-  "Bone contusion in medial femoral condyle and tibial plateau."
-
-  then Contusion=1.
-
-  A validator must not change this to 0 merely because another part of the report describes bone marrow edema.
-
-  Similarly, if the report explicitly says:
-
-  "ACL sprain"
-
-  ACL=1 unless GOLD_ANALYSIS specifically establishes an exceptional mapping.
-
-  ==================================================
-  MODEL 2 OA RULE
-  ===============
-
-  Do not automatically convert:
-
-  "Osteoarthritis of left knee"
-
-  into:
-
-  Medial_OA=1
-  Lateral_OA=1
-  PF_OA=1.
-
-  Do not assign a compartment unless:
-
-  * the report explicitly identifies the compartment, OR
-  * GOLD_ANALYSIS explicitly establishes the mapping.
-
-  Generic cartilage wear/spur formation cannot be reused for all three compartments.
-
-  ==================================================
-  MODEL 2 UNCERTAINTY RULE
-  ========================
-
-  For:
-
-  R/O
-  possible
-  suspicious
-  cannot exclude
-  questionable
-
-  first classify as UNCERTAIN.
-
-  Then apply GOLD_ANALYSIS.
-
-  Do not universally force UNCERTAIN → 0.
-
-  Do not universally force UNCERTAIN → 1.
-
-  ==================================================
-  NO INVENTED CORRECTIONS
-  =======================
-
-  Do not change a label merely because a finding could possibly correspond to it.
-
-  A corrected value must be supported by:
-
-  ORIGINAL_REPORT + GOLD_ANALYSIS.
-
-  Do not create corrections from assumptions.
-
-  Examples:
-
-  Do not create Bakers=1 from a non-popliteal cyst.
-
-  Do not create Fracture=1 from marrow edema alone.
-
-  Do not create Contusion=1 from any nonspecific bone abnormality.
-
-  Do not create OA compartment labels from generalized OA without appropriate support.
-
-  Do not create meniscal tear from discoid morphology alone.
-
-  Do not create Synovitis=1 from effusion alone.
-
-  ==================================================
   RETRIEVAL RULE
   ==============
 
@@ -521,7 +343,12 @@ system_prompt: |
   There are zero genuine binary disagreements.
 
   FAIL:
-  There is at least one genuine binary disagreement.
+  There is at least one genuine binary disagreement with a confident correction.
+
+  AMBIGUOUS:
+  The report and GOLD_ANALYSIS do not support a confident correction for at least one disputed label.
+  Do not create issues with corrected=null for labels where you have a confident correction.
+  AMBIGUOUS should not trigger Model 1 retry — escalate to needs_review.
 
   Evidence quality alone must never change PASS to FAIL.
 
@@ -564,7 +391,7 @@ system_prompt: |
   Exact structure:
 
   {
-  "status": "PASS",
+  "status": "PASS | FAIL | AMBIGUOUS",
   "issues": [
   {
   "label": "Lateral_Meniscus",
@@ -592,6 +419,20 @@ system_prompt: |
   "predicted": 1,
   "corrected": 0,
   "reason": "..."
+  }
+  ]
+  }
+
+  If the report and GOLD_ANALYSIS do not support a confident correction:
+
+  {
+  "status": "AMBIGUOUS",
+  "issues": [
+  {
+  "label": "...",
+  "predicted": 1,
+  "corrected": null,
+  "reason": "Report contains 'possible tear' language; GOLD_ANALYSIS does not establish clear mapping for this uncertainty pattern."
   }
   ]
   }

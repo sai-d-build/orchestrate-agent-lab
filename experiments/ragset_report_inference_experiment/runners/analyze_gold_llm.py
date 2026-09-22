@@ -47,8 +47,9 @@ from experiments.ragset_report_inference_experiment.src.ragset_inference.models 
 # Checkpoint file path
 CHECKPOINT_FILE = Path("gold_analysis_checkpoint.json")
 
-# Label batch size: 3-4 labels per call to keep output under ~8K tokens
-LABEL_BATCH_SIZE = 3
+# Label batch size: 1-2 labels per call to keep output under ~8K tokens
+# Reduced from 3-4 to prevent JSON truncation
+LABEL_BATCH_SIZE = 2
 
 
 def load_gold_analysis_prompt(exp_root: Path) -> dict:
@@ -76,12 +77,14 @@ def format_single_report_for_analysis(row, labels_subset) -> str:
 
 
 def build_output_structure(labels_subset) -> str:
-    """Build the expected JSON output structure for the given labels."""
+    """Build the expected JSON output structure for the given labels.
+    
+    Compact structure to reduce token usage and prevent truncation.
+    """
     label_specific_template = ",\n".join([f'    "{label}": {{}}' for label in labels_subset])
 
     return f"""{{
-  "metadata": {{"total_gold_reports": 1, "labels_analyzed": {len(labels_subset)}, "labels_in_batch": {json.dumps(labels_subset)}, "languages_observed": [], "report_styles_observed": []}},
-  "dataset_level": {{"languages": [], "report_styles": [], "clinical_scenarios": []}},
+  "metadata": {{"total_gold_reports": 1, "labels_analyzed": {len(labels_subset)}, "labels_in_batch": {json.dumps(labels_subset)}}},
   "label_specific": {{
 {label_specific_template}
   }},
@@ -108,32 +111,18 @@ def run_gold_analysis_batch(model: InferenceModel, prompt_cfg: dict, gold_df, la
     logger.debug(f"Gold examples length: {len(gold_examples)} characters")
     logger.debug(f"Labels: {labels_text}")
 
-    # Strengthen the user prompt with explicit field requirements
+    # Strengthen the user prompt with explicit field requirements (compact version)
     field_requirements = f"""
-MANDATORY: Your response MUST include ALL of the following top-level fields, even if empty:
-- metadata (object)
-- dataset_level (object with languages, report_styles, clinical_scenarios arrays)
-- label_specific (object with keys for EACH label in this batch: {", ".join(labels_subset)})
-- linguistic (object with negation_patterns, uncertainty_patterns, historical_current_patterns, question_indication_patterns, abbreviations, multilingual_terminology)
-- clinical (object with anatomy, laterality, related_labels, confusing_findings, difficult_cases)
-- contradictions (array)
-- derived_conventions (array)
-- unsafe_shortcuts (array)
-- unresolved_rules (array)
-- quality_control (object)
+MANDATORY: Your response MUST include ALL top-level fields:
+- metadata, label_specific (keys: {", ".join(labels_subset)}), linguistic, clinical, contradictions, derived_conventions, unsafe_shortcuts, unresolved_rules, quality_control
 
-For EACH label in label_specific, you MUST provide:
-- gold_positive_count (integer: 0 or 1 for single report)
-- gold_negative_count (integer: 0 or 1 for single report)
-- raw_observations (array of objects with study_instance_uid, exact_text, normalized_pattern, evidence_strength, gold_label, anatomical_scope, certainty, temporal_status, context, related_findings)
-- pattern_frequencies (array of objects with pattern, total_occurrences, gold_positive, gold_negative, positive_rate, unique_studies, sample_size)
-- contradictions (array)
-- safe_rules (array)
-- unsafe_shortcuts (array)
-- unresolved_rules (array)
-- anatomy_specifics (object)
+For EACH label in label_specific, provide:
+- gold_positive_count (0 or 1), gold_negative_count (0 or 1)
+- raw_observations (array with study_instance_uid, exact_text, normalized_pattern, evidence_strength, gold_label, anatomical_scope, certainty, temporal_status, context, related_findings)
+- pattern_frequencies (array with pattern, total_occurrences, gold_positive, gold_negative, positive_rate, unique_studies, sample_size)
+- contradictions, safe_rules, unsafe_shortcuts, unresolved_rules, anatomy_specifics
 
-DO NOT output only metadata. Output the COMPLETE structure."""
+Output COMPLETE JSON only. No extra text."""
 
     user = prompt_cfg["user_template"].format(
         labels=labels_text,
@@ -148,11 +137,10 @@ DO NOT output only metadata. Output the COMPLETE structure."""
     logger.debug(f"System prompt length: {len(prompt_cfg['system'])} characters")
 
     # Retry with exponential backoff for API overload errors (502, 503, 504, 5002, 5003, etc.)
-    # For API overload errors, wait 100 seconds; for others, use exponential backoff with jitter
-    max_retries = 5
-    base_wait = 2  # seconds
-    max_wait = 60  # seconds (for non-overload errors)
-    consecutive_failures = 0
+    # For API overload errors, wait 100 seconds; for others, use exponential backoff: 5, 15, 30 seconds
+    max_retries = 3
+    retry_delays = [5, 15, 30]  # seconds
+    overload_wait = 100.0  # seconds for API overload errors
 
     for attempt in range(max_retries):
         try:
@@ -167,29 +155,18 @@ DO NOT output only metadata. Output the COMPLETE structure."""
                 temperature=0,
             )
             logger.info("LLM response received successfully")
-            consecutive_failures = 0
             break
         except Exception as e:
             is_overload = _is_api_overload_error(e)
-            is_retryable = is_overload or attempt < max_retries - 1  # Retry all errors up to max_retries
+            is_retryable = is_overload or attempt < max_retries - 1
 
             if is_retryable and attempt < max_retries - 1:
-                consecutive_failures += 1
-                
-                # Use 100s for API overload errors, exponential backoff with jitter for others
                 if is_overload:
-                    wait_time = 100.0
+                    wait_time = overload_wait
                     logger.warning(f"API overload detected (attempt {attempt + 1}/{max_retries}): {e}. Waiting {wait_time}s...")
                 else:
-                    # Exponential backoff with jitter
-                    wait_time = min(base_wait * (2 ** attempt) + random.uniform(0, 1), max_wait)
-                    logger.warning(f"Retryable error (attempt {attempt + 1}/{max_retries}): {e}. Waiting {wait_time:.1f}s...")
-
-                # Extra 60s wait after 5 consecutive failures (for non-overload errors)
-                if consecutive_failures >= 5 and not is_overload:
-                    logger.warning(f"5 consecutive failures detected, waiting 60s before retry...")
-                    time.sleep(60)
-                    consecutive_failures = 0
+                    wait_time = retry_delays[attempt] if attempt < len(retry_delays) else retry_delays[-1]
+                    logger.warning(f"Retryable error (attempt {attempt + 1}/{max_retries}): {e}. Waiting {wait_time}s...")
 
                 time.sleep(wait_time)
                 continue
@@ -220,11 +197,40 @@ DO NOT output only metadata. Output the COMPLETE structure."""
     # Try to fix truncated JSON by closing open structures
     def try_fix_truncated_json(text):
         """Attempt to fix common truncation issues in JSON."""
+        # First, try to find the last complete object
+        # Look for the last complete key-value pair
+        text = text.strip()
+        
+        # Count braces and brackets
         open_braces = text.count('{')
         close_braces = text.count('}')
         open_brackets = text.count('[')
         close_brackets = text.count(']')
-
+        
+        # If truncated in the middle of a string, try to close it
+        # Count quotes to detect unclosed strings
+        in_string = False
+        escaped = False
+        for i, ch in enumerate(text):
+            if ch == '\\' and not escaped:
+                escaped = True
+            elif ch == '"' and not escaped:
+                in_string = not in_string
+            else:
+                escaped = False
+        
+        if in_string:
+            # Find the last quote and truncate there, then close
+            last_quote = text.rfind('"')
+            if last_quote > 0:
+                text = text[:last_quote + 1]
+        
+        # Re-count after potential string fix
+        open_braces = text.count('{')
+        close_braces = text.count('}')
+        open_brackets = text.count('[')
+        close_brackets = text.count(']')
+        
         if open_braces > close_braces:
             text += '}' * (open_braces - close_braces)
         if open_brackets > close_brackets:
@@ -314,8 +320,12 @@ def validate_batch_analysis(analysis: dict, labels_subset) -> bool:
             logger.warning(f"Missing label in analysis: {label}")
             return False
         label_data = label_specific[label]
-        if not label_data or (label_data.get("gold_positive_count", 0) == 0 and label_data.get("gold_negative_count", 0) == 0):
+        if not label_data:
             logger.warning(f"Label {label} has empty data")
+            return False
+        # Allow zero counts if at least one is present (some labels may be all positive or all negative in this report)
+        if label_data.get("gold_positive_count", 0) == 0 and label_data.get("gold_negative_count", 0) == 0:
+            logger.warning(f"Label {label} has zero counts")
             return False
 
     return True
@@ -428,31 +438,63 @@ def main():
     prompt_cfg = load_gold_analysis_prompt(exp)
     logger.debug(f"Prompt keys: {prompt_cfg.keys()}")
 
-    # Load model profile
+    # Load model profiles for fallback chain
     logger.info("Loading model config...")
     models_cfg = yaml.safe_load((root / "config" / "models.yaml").read_text(encoding="utf-8"))
-    # Use gold_analysis_profile if available, fallback to inference_profile
-    gold_profile = cfg["models"].get("gold_analysis_profile", cfg["models"]["inference_profile"])
-    gold_config = models_cfg["models"][gold_profile]
-    logger.info(f"Using gold analysis profile: {gold_profile}")
-    logger.info(f"Model: {gold_config['model']}, Provider: {gold_config.get('provider', 'nvidia')}")
-
-    gold_provider = gold_config.get("provider", "nvidia")
-    gold_api_key_env = gold_config.get("api_key_env", "NVIDIA_API_KEY")
-
-    if not os.environ.get(gold_api_key_env):
-        raise RuntimeError(f"{gold_api_key_env} is required for provider '{gold_provider}'.")
-
-    logger.info("Initializing InferenceModel...")
-    # Use same max_tokens as inference (8000) to avoid gateway timeout
-    model = InferenceModel(
-        gold_config["model"],
-        max_tokens=gold_config.get("parameters", {}).get("max_output_tokens", 8000),
-        provider=gold_provider,
-        api_key=os.environ.get(gold_api_key_env),
-        reasoning=False,  # Disable reasoning for reliable JSON output
-    )
-    logger.info(f"Model initialized: {model.model} with max_tokens={model.max_tokens}")
+    
+    # Define fallback chain for gold analysis
+    fallback_profiles = [
+        cfg["models"].get("gold_analysis_profile"),
+        cfg["models"].get("gold_analysis_profile", "").replace("-usf", "") + "-usf" if "usf" not in cfg["models"].get("gold_analysis_profile", "") else None,
+        "ragset-gold-analysis",  # OpenRouter fallback
+    ]
+    # Filter out None and duplicates
+    fallback_profiles = [p for p in fallback_profiles if p and p in models_cfg.get("models", {})]
+    # Remove duplicates while preserving order
+    seen = set()
+    fallback_profiles = [p for p in fallback_profiles if not (p in seen or seen.add(p))]
+    
+    logger.info(f"Gold analysis fallback chain: {fallback_profiles}")
+    
+    model = None
+    gold_config = None
+    gold_profile = None
+    
+    for profile_name in fallback_profiles:
+        if profile_name not in models_cfg.get("models", {}):
+            logger.warning(f"Profile {profile_name} not found in models config, skipping")
+            continue
+            
+        gold_config = models_cfg["models"][profile_name]
+        gold_provider = gold_config.get("provider", "nvidia")
+        gold_api_key_env = gold_config.get("api_key_env", "NVIDIA_API_KEY")
+        
+        if not os.environ.get(gold_api_key_env):
+            logger.warning(f"API key {gold_api_key_env} not set for profile {profile_name}, skipping")
+            continue
+            
+        logger.info(f"Trying gold analysis profile: {profile_name}")
+        logger.info(f"Model: {gold_config['model']}, Provider: {gold_provider}")
+        
+        try:
+            model = InferenceModel(
+                gold_config["model"],
+                max_tokens=gold_config.get("parameters", {}).get("max_output_tokens", 16000),
+                provider=gold_provider,
+                api_key=os.environ.get(gold_api_key_env),
+                reasoning=False,
+            )
+            logger.info(f"Model initialized: {model.model} with max_tokens={model.max_tokens}")
+            gold_profile = profile_name
+            break
+        except Exception as e:
+            logger.warning(f"Failed to initialize model for profile {profile_name}: {e}")
+            continue
+    
+    if model is None:
+        raise RuntimeError("Failed to initialize any gold analysis model from fallback chain")
+    
+    logger.info(f"Successfully initialized gold analysis model: {gold_profile}")
 
     # Load checkpoint for resume capability
     checkpoint = load_checkpoint()
@@ -480,15 +522,44 @@ def main():
 
             logger.info(f"Processing batch {batch_num}/{total_batches}: {batch_key}")
 
-            # Single call with one report for 3-4 labels
-            batch_result = run_gold_analysis_batch(model, prompt_cfg, gold, labels_subset, report_idx)
-
-            # Validate the batch analysis
-            if not validate_batch_analysis(batch_result, labels_subset):
-                logger.error(f"Batch validation failed for {batch_key} - missing or empty label data")
-                # Save checkpoint but don't mark complete
-                save_checkpoint(completed_batches, accumulated_analysis)
-                raise RuntimeError(f"Gold analysis validation failed for batch {batch_key}. Check logs for details.")
+            # Retry logic for batch processing with exponential backoff
+            max_batch_retries = 3
+            batch_retry_delays = [5, 15, 30]  # seconds
+            batch_result = None
+            
+            for batch_attempt in range(max_batch_retries):
+                try:
+                    # Single call with one report for 1-2 labels
+                    batch_result = run_gold_analysis_batch(model, prompt_cfg, gold, labels_subset, report_idx)
+                    
+                    # Validate the batch analysis
+                    if not validate_batch_analysis(batch_result, labels_subset):
+                        logger.warning(f"Batch validation failed for {batch_key} (attempt {batch_attempt + 1}/{max_batch_retries})")
+                        if batch_attempt < max_batch_retries - 1:
+                            wait_time = batch_retry_delays[batch_attempt] if batch_attempt < len(batch_retry_delays) else batch_retry_delays[-1]
+                            logger.info(f"Waiting {wait_time}s before retry...")
+                            time.sleep(wait_time)
+                            continue
+                        else:
+                            logger.error(f"Batch validation failed for {batch_key} after {max_batch_retries} attempts")
+                            # Save checkpoint with partial results but don't mark complete
+                            save_checkpoint(completed_batches, accumulated_analysis)
+                            raise RuntimeError(f"Gold analysis validation failed for batch {batch_key} after {max_batch_retries} attempts. Check logs for details.")
+                    
+                    # Success
+                    break
+                    
+                except Exception as e:
+                    logger.warning(f"Batch attempt {batch_attempt + 1}/{max_batch_retries} failed: {e}")
+                    if batch_attempt < max_batch_retries - 1:
+                        wait_time = batch_retry_delays[batch_attempt] if batch_attempt < len(batch_retry_delays) else batch_retry_delays[-1]
+                        logger.info(f"Waiting {wait_time}s before retry...")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(f"Batch failed after {max_batch_retries} attempts: {e}")
+                        save_checkpoint(completed_batches, accumulated_analysis)
+                        raise
 
             # Merge batch result into accumulated analysis
             accumulated_analysis = merge_analyses(accumulated_analysis, batch_result, labels_subset)

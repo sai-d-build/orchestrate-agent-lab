@@ -107,6 +107,24 @@ models:
       zdr: true
       allow_fallbacks: false
 
+  # USF API key variant for gold analysis
+  nvidia-ragset-gold-analysis-usf:
+    provider: nvidia
+    model: nvidia/nemotron-3-ultra-550b-a55b
+    api_key_env: NVIDIA_API_KEY_USF
+    purpose: ragset_gold_analysis
+    capabilities:
+      - text
+      - structured_output
+    parameters:
+      temperature: 0
+      max_output_tokens: 16000
+      reasoning: false
+    provider_policy:
+      data_collection: deny
+      zdr: true
+      allow_fallbacks: false
+
   # ============================================================
   # OPENROUTER — FREE MODEL BENCHMARK (fallback)
   # Lesson 1.2

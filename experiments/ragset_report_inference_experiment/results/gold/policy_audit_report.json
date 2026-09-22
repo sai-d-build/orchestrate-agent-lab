@@ -1,0 +1,728 @@
+{
+  "total_contradictions": 15,
+  "errors": 12,
+  "warnings": 3,
+  "labels": {
+    "ACL": {
+      "label": "ACL",
+      "csv_positive": 24,
+      "csv_negative": 34,
+      "llm_positive": 24,
+      "llm_negative": 37,
+      "policy_positive": 24,
+      "policy_negative": 37,
+      "conventions": [
+        {
+          "pattern": "explicit ACL tear/rupture/sprain/injury",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 24,
+          "contradicting_count": 0,
+          "example_uids": [
+            "10170898615867673028696505248839028269",
+            "11382021393803389951964005983002209238"
+          ]
+        },
+        {
+          "pattern": "ACL intact/normal/preserved",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 37,
+          "example_uids": [
+            "10170898615867673028696505248839028269",
+            "10306159113324811538703788080836752052"
+          ]
+        },
+        {
+          "pattern": "increased signal without explicit tear",
+          "status": "UNSAFE",
+          "rationale": "Increased signal alone does not establish tear; requires explicit tear language"
+        }
+      ],
+      "contradictions": [
+        "Contradiction(label='ACL', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 24, 'neg': 34}, llm_value=None, policy_value={'pos': 24, 'neg': 37}, affected_rules=['count_verification'])"
+      ],
+      "status": "CONTRADICTION"
+    },
+    "MCL": {
+      "label": "MCL",
+      "csv_positive": 9,
+      "csv_negative": 49,
+      "llm_positive": 9,
+      "llm_negative": 52,
+      "policy_positive": 9,
+      "policy_negative": 52,
+      "conventions": [
+        {
+          "pattern": "explicit MCL tear/rupture/sprain/partial tear/grade 2",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 9,
+          "contradicting_count": 0,
+          "example_uids": [
+            "12505035424093604269515328931488770819",
+            "12606657226568558340797193167488111973"
+          ]
+        },
+        {
+          "pattern": "MCL intact/normal/within normal limits/sin alteraciones",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 52,
+          "example_uids": [
+            "10095687747295410396510538520594649149",
+            "10170898615867673028696505248839028269"
+          ]
+        },
+        {
+          "pattern": "periligamentous fluid/edema without explicit tear",
+          "status": "UNSAFE",
+          "rationale": "Only 1 positive example; no negative counterexamples"
+        },
+        {
+          "pattern": "suspect/possible MCL injury",
+          "status": "UNRESOLVED",
+          "rationale": "Only 1 positive example with 'suspect grade 2'; no negative counterexamples"
+        }
+      ],
+      "contradictions": [
+        "Contradiction(label='MCL', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 9, 'neg': 49}, llm_value=None, policy_value={'pos': 9, 'neg': 52}, affected_rules=['count_verification'])",
+        "Contradiction(label='MCL', type=<ContradictionType.CONVENTION_CONFLICT: 'convention_conflict'>, severity='WARNING', message=\"Unresolved convention: Only 1 positive example with 'suspect grade 2'; no negative counterexamples\", csv_value=None, llm_value=None, policy_value={'pattern': 'suspect/possible MCL injury'}, affected_rules=['unresolved_convention'])"
+      ],
+      "status": "CONTRADICTION"
+    },
+    "Medial_Meniscus": {
+      "label": "Medial_Meniscus",
+      "csv_positive": 26,
+      "csv_negative": 32,
+      "llm_positive": 27,
+      "llm_negative": 34,
+      "policy_positive": 27,
+      "policy_negative": 34,
+      "conventions": [
+        {
+          "pattern": "explicit medial meniscus tear/rupture/horizontal/vertical/radial/root/complex",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 27,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "explicit no-tear/normal/intact",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 34
+        },
+        {
+          "pattern": "degenerative change/mucoid degeneration without explicit tear",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 4
+        },
+        {
+          "pattern": "grade II signal without explicit tear",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 4
+        },
+        {
+          "pattern": "suspected/possible/R-O tear",
+          "status": "UNRESOLVED",
+          "rationale": "Insufficient gold examples with uncertainty language"
+        },
+        {
+          "pattern": "discoid morphology",
+          "status": "SAFE_NEGATIVE",
+          "rationale": "Discoid morphology alone does not equal tear"
+        }
+      ],
+      "contradictions": [
+        "Contradiction(label='Medial_Meniscus', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 26, 'neg': 32}, llm_value=None, policy_value={'pos': 27, 'neg': 34}, affected_rules=['count_verification'])",
+        "Contradiction(label='Medial_Meniscus', type=<ContradictionType.CONVENTION_CONFLICT: 'convention_conflict'>, severity='WARNING', message='Unresolved convention: Insufficient gold examples with uncertainty language', csv_value=None, llm_value=None, policy_value={'pattern': 'suspected/possible/R-O tear'}, affected_rules=['unresolved_convention'])"
+      ],
+      "status": "CONTRADICTION"
+    },
+    "Lateral_Meniscus": {
+      "label": "Lateral_Meniscus",
+      "csv_positive": 23,
+      "csv_negative": 35,
+      "llm_positive": 24,
+      "llm_negative": 37,
+      "policy_positive": 24,
+      "policy_negative": 37,
+      "conventions": [
+        {
+          "pattern": "explicit lateral meniscus tear/rupture/horizontal/vertical/radial/root/complex",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 24,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "explicit no-tear/normal/intact",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 37
+        },
+        {
+          "pattern": "degenerative change/mucoid degeneration without explicit tear",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 4
+        },
+        {
+          "pattern": "grade II signal without explicit tear",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 4
+        },
+        {
+          "pattern": "suspected/possible/R-O tear",
+          "status": "UNRESOLVED",
+          "rationale": "Insufficient gold examples with uncertainty language"
+        },
+        {
+          "pattern": "meniscal extrusion",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 6,
+          "contradicting_count": 0,
+          "rationale": "Extrusion always associated with tear in gold"
+        }
+      ],
+      "contradictions": [
+        "Contradiction(label='Lateral_Meniscus', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 23, 'neg': 35}, llm_value=None, policy_value={'pos': 24, 'neg': 37}, affected_rules=['count_verification'])",
+        "Contradiction(label='Lateral_Meniscus', type=<ContradictionType.CONVENTION_CONFLICT: 'convention_conflict'>, severity='WARNING', message='Unresolved convention: Insufficient gold examples with uncertainty language', csv_value=None, llm_value=None, policy_value={'pattern': 'suspected/possible/R-O tear'}, affected_rules=['unresolved_convention'])"
+      ],
+      "status": "CONTRADICTION"
+    },
+    "Medial_OA": {
+      "label": "Medial_OA",
+      "csv_positive": 15,
+      "csv_negative": 43,
+      "llm_positive": 16,
+      "llm_negative": 45,
+      "policy_positive": 16,
+      "policy_negative": 45,
+      "conventions": [
+        {
+          "pattern": "explicit medial compartment OA/osteoarthritis/chondrosis/chondrosis grade 3-4",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 16,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "generalized/tricompartmental OA without medial specification",
+          "status": "CONTEXTUAL",
+          "supporting_count": 2,
+          "contradicting_count": 2
+        },
+        {
+          "pattern": "medial compartment chondromalacia/chondropathy/chondrosis",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 2,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "chondromalacia without compartment specification",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 2
+        }
+      ],
+      "contradictions": [
+        "Contradiction(label='Medial_OA', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 15, 'neg': 43}, llm_value=None, policy_value={'pos': 16, 'neg': 45}, affected_rules=['count_verification'])"
+      ],
+      "status": "CONTRADICTION"
+    },
+    "Lateral_OA": {
+      "label": "Lateral_OA",
+      "csv_positive": 11,
+      "csv_negative": 47,
+      "llm_positive": 11,
+      "llm_negative": 50,
+      "policy_positive": 11,
+      "policy_negative": 50,
+      "conventions": [
+        {
+          "pattern": "explicit lateral compartment OA/osteoarthritis/chondrosis",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 11,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "generalized/tricompartmental OA without lateral specification",
+          "status": "CONTEXTUAL",
+          "supporting_count": 2,
+          "contradicting_count": 2
+        },
+        {
+          "pattern": "lateral compartment chondromalacia/chondropathy",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 1,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "chondromalacia without compartment specification",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 2
+        }
+      ],
+      "contradictions": [
+        "Contradiction(label='Lateral_OA', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 11, 'neg': 47}, llm_value=None, policy_value={'pos': 11, 'neg': 50}, affected_rules=['count_verification'])"
+      ],
+      "status": "CONTRADICTION"
+    },
+    "PF_OA": {
+      "label": "PF_OA",
+      "csv_positive": 21,
+      "csv_negative": 37,
+      "llm_positive": 23,
+      "llm_negative": 37,
+      "policy_positive": 23,
+      "policy_negative": 37,
+      "conventions": [
+        {
+          "pattern": "explicit patellofemoral OA/osteoarthritis/chondrosis",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 23,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "patellar/trochlear chondromalacia/chondropathy/chondrosis",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 3,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "generalized chondromalacia without PF specification",
+          "status": "CONTEXTUAL",
+          "supporting_count": 1,
+          "contradicting_count": 2
+        },
+        {
+          "pattern": "chondromalacia without compartment specification",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 2
+        }
+      ],
+      "contradictions": [
+        "Contradiction(label='PF_OA', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 21, 'neg': 37}, llm_value=None, policy_value={'pos': 23, 'neg': 37}, affected_rules=['count_verification'])"
+      ],
+      "status": "CONTRADICTION"
+    },
+    "Effusion": {
+      "label": "Effusion",
+      "csv_positive": 35,
+      "csv_negative": 23,
+      "llm_positive": 36,
+      "llm_negative": 24,
+      "policy_positive": 36,
+      "policy_negative": 24,
+      "conventions": [
+        {
+          "pattern": "explicit joint effusion/joint fluid/effusion",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 36,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "minimal/trace/small effusion",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 36,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "no effusion",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 24
+        }
+      ],
+      "contradictions": [
+        "Contradiction(label='Effusion', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 35, 'neg': 23}, llm_value=None, policy_value={'pos': 36, 'neg': 24}, affected_rules=['count_verification'])"
+      ],
+      "status": "CONTRADICTION"
+    },
+    "Synovitis": {
+      "label": "Synovitis",
+      "csv_positive": 27,
+      "csv_negative": 31,
+      "llm_positive": 28,
+      "llm_negative": 32,
+      "policy_positive": 28,
+      "policy_negative": 32,
+      "conventions": [
+        {
+          "pattern": "explicit synovitis/synovial hypertrophy/thickening",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 28,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "effusion alone without explicit synovitis",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 32
+        },
+        {
+          "pattern": "Baker's cyst fluid alone",
+          "status": "UNSAFE",
+          "rationale": "Effusion/Baker's fluid alone does not establish synovitis"
+        }
+      ],
+      "contradictions": [
+        "Contradiction(label='Synovitis', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 27, 'neg': 31}, llm_value=None, policy_value={'pos': 28, 'neg': 32}, affected_rules=['count_verification'])"
+      ],
+      "status": "CONTRADICTION"
+    },
+    "Bakers": {
+      "label": "Bakers",
+      "csv_positive": 12,
+      "csv_negative": 46,
+      "llm_positive": 12,
+      "llm_negative": 48,
+      "policy_positive": 12,
+      "policy_negative": 48,
+      "conventions": [
+        {
+          "pattern": "explicit Baker's/Becker/popliteal cyst",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 12,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "other cysts (ganglion, suprapatellar, infrapatellar bursitis)",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 48
+        }
+      ],
+      "contradictions": [
+        "Contradiction(label='Bakers', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 12, 'neg': 46}, llm_value=None, policy_value={'pos': 12, 'neg': 48}, affected_rules=['count_verification'])"
+      ],
+      "status": "CONTRADICTION"
+    },
+    "Contusion": {
+      "label": "Contusion",
+      "csv_positive": 19,
+      "csv_negative": 39,
+      "llm_positive": 19,
+      "llm_negative": 41,
+      "policy_positive": 19,
+      "policy_negative": 41,
+      "conventions": [
+        {
+          "pattern": "explicit bone contusion/bone bruise/bone infarct",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 19,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "bone marrow edema/subchondral edema/osteochondral edema without explicit contusion",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 41
+        },
+        {
+          "pattern": "chronic osteochondral/subchondral edema",
+          "status": "SAFE_NEGATIVE",
+          "rationale": "Chronic/degenerative edema not automatically acute contusion"
+        }
+      ],
+      "contradictions": [
+        "Contradiction(label='Contusion', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 19, 'neg': 39}, llm_value=None, policy_value={'pos': 19, 'neg': 41}, affected_rules=['count_verification'])"
+      ],
+      "status": "CONTRADICTION"
+    },
+    "Fracture": {
+      "label": "Fracture",
+      "csv_positive": 18,
+      "csv_negative": 40,
+      "llm_positive": 18,
+      "llm_negative": 42,
+      "policy_positive": 18,
+      "policy_negative": 42,
+      "conventions": [
+        {
+          "pattern": "explicit fracture/avulsion fracture",
+          "status": "SAFE_POSITIVE",
+          "supporting_count": 18,
+          "contradicting_count": 0
+        },
+        {
+          "pattern": "bone marrow edema alone",
+          "status": "SAFE_NEGATIVE",
+          "supporting_count": 0,
+          "contradicting_count": 42
+        },
+        {
+          "pattern": "generic bone abnormality",
+          "status": "SAFE_NEGATIVE",
+          "rationale": "Generic bone abnormality does not establish fracture"
+        }
+      ],
+      "contradictions": [
+        "Contradiction(label='Fracture', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 18, 'neg': 40}, llm_value=None, policy_value={'pos': 18, 'neg': 42}, affected_rules=['count_verification'])"
+      ],
+      "status": "CONTRADICTION"
+    }
+  },
+  "contradictions": [
+    {
+      "label": "ACL",
+      "type": "ContradictionType.COUNT_MISMATCH",
+      "severity": "ERROR",
+      "message": "Policy counts differ from CSV ground truth",
+      "csv_value": {
+        "pos": 24,
+        "neg": 34
+      },
+      "llm_value": null,
+      "policy_value": {
+        "pos": 24,
+        "neg": 37
+      },
+      "affected_rules": [
+        "count_verification"
+      ]
+    },
+    {
+      "label": "MCL",
+      "type": "ContradictionType.COUNT_MISMATCH",
+      "severity": "ERROR",
+      "message": "Policy counts differ from CSV ground truth",
+      "csv_value": {
+        "pos": 9,
+        "neg": 49
+      },
+      "llm_value": null,
+      "policy_value": {
+        "pos": 9,
+        "neg": 52
+      },
+      "affected_rules": [
+        "count_verification"
+      ]
+    },
+    {
+      "label": "Medial_Meniscus",
+      "type": "ContradictionType.COUNT_MISMATCH",
+      "severity": "ERROR",
+      "message": "Policy counts differ from CSV ground truth",
+      "csv_value": {
+        "pos": 26,
+        "neg": 32
+      },
+      "llm_value": null,
+      "policy_value": {
+        "pos": 27,
+        "neg": 34
+      },
+      "affected_rules": [
+        "count_verification"
+      ]
+    },
+    {
+      "label": "Lateral_Meniscus",
+      "type": "ContradictionType.COUNT_MISMATCH",
+      "severity": "ERROR",
+      "message": "Policy counts differ from CSV ground truth",
+      "csv_value": {
+        "pos": 23,
+        "neg": 35
+      },
+      "llm_value": null,
+      "policy_value": {
+        "pos": 24,
+        "neg": 37
+      },
+      "affected_rules": [
+        "count_verification"
+      ]
+    },
+    {
+      "label": "Medial_OA",
+      "type": "ContradictionType.COUNT_MISMATCH",
+      "severity": "ERROR",
+      "message": "Policy counts differ from CSV ground truth",
+      "csv_value": {
+        "pos": 15,
+        "neg": 43
+      },
+      "llm_value": null,
+      "policy_value": {
+        "pos": 16,
+        "neg": 45
+      },
+      "affected_rules": [
+        "count_verification"
+      ]
+    },
+    {
+      "label": "Lateral_OA",
+      "type": "ContradictionType.COUNT_MISMATCH",
+      "severity": "ERROR",
+      "message": "Policy counts differ from CSV ground truth",
+      "csv_value": {
+        "pos": 11,
+        "neg": 47
+      },
+      "llm_value": null,
+      "policy_value": {
+        "pos": 11,
+        "neg": 50
+      },
+      "affected_rules": [
+        "count_verification"
+      ]
+    },
+    {
+      "label": "PF_OA",
+      "type": "ContradictionType.COUNT_MISMATCH",
+      "severity": "ERROR",
+      "message": "Policy counts differ from CSV ground truth",
+      "csv_value": {
+        "pos": 21,
+        "neg": 37
+      },
+      "llm_value": null,
+      "policy_value": {
+        "pos": 23,
+        "neg": 37
+      },
+      "affected_rules": [
+        "count_verification"
+      ]
+    },
+    {
+      "label": "Effusion",
+      "type": "ContradictionType.COUNT_MISMATCH",
+      "severity": "ERROR",
+      "message": "Policy counts differ from CSV ground truth",
+      "csv_value": {
+        "pos": 35,
+        "neg": 23
+      },
+      "llm_value": null,
+      "policy_value": {
+        "pos": 36,
+        "neg": 24
+      },
+      "affected_rules": [
+        "count_verification"
+      ]
+    },
+    {
+      "label": "Synovitis",
+      "type": "ContradictionType.COUNT_MISMATCH",
+      "severity": "ERROR",
+      "message": "Policy counts differ from CSV ground truth",
+      "csv_value": {
+        "pos": 27,
+        "neg": 31
+      },
+      "llm_value": null,
+      "policy_value": {
+        "pos": 28,
+        "neg": 32
+      },
+      "affected_rules": [
+        "count_verification"
+      ]
+    },
+    {
+      "label": "Bakers",
+      "type": "ContradictionType.COUNT_MISMATCH",
+      "severity": "ERROR",
+      "message": "Policy counts differ from CSV ground truth",
+      "csv_value": {
+        "pos": 12,
+        "neg": 46
+      },
+      "llm_value": null,
+      "policy_value": {
+        "pos": 12,
+        "neg": 48
+      },
+      "affected_rules": [
+        "count_verification"
+      ]
+    },
+    {
+      "label": "Contusion",
+      "type": "ContradictionType.COUNT_MISMATCH",
+      "severity": "ERROR",
+      "message": "Policy counts differ from CSV ground truth",
+      "csv_value": {
+        "pos": 19,
+        "neg": 39
+      },
+      "llm_value": null,
+      "policy_value": {
+        "pos": 19,
+        "neg": 41
+      },
+      "affected_rules": [
+        "count_verification"
+      ]
+    },
+    {
+      "label": "Fracture",
+      "type": "ContradictionType.COUNT_MISMATCH",
+      "severity": "ERROR",
+      "message": "Policy counts differ from CSV ground truth",
+      "csv_value": {
+        "pos": 18,
+        "neg": 40
+      },
+      "llm_value": null,
+      "policy_value": {
+        "pos": 18,
+        "neg": 42
+      },
+      "affected_rules": [
+        "count_verification"
+      ]
+    },
+    {
+      "label": "MCL",
+      "type": "ContradictionType.CONVENTION_CONFLICT",
+      "severity": "WARNING",
+      "message": "Unresolved convention: Only 1 positive example with 'suspect grade 2'; no negative counterexamples",
+      "csv_value": null,
+      "llm_value": null,
+      "policy_value": {
+        "pattern": "suspect/possible MCL injury"
+      },
+      "affected_rules": [
+        "unresolved_convention"
+      ]
+    },
+    {
+      "label": "Medial_Meniscus",
+      "type": "ContradictionType.CONVENTION_CONFLICT",
+      "severity": "WARNING",
+      "message": "Unresolved convention: Insufficient gold examples with uncertainty language",
+      "csv_value": null,
+      "llm_value": null,
+      "policy_value": {
+        "pattern": "suspected/possible/R-O tear"
+      },
+      "affected_rules": [
+        "unresolved_convention"
+      ]
+    },
+    {
+      "label": "Lateral_Meniscus",
+      "type": "ContradictionType.CONVENTION_CONFLICT",
+      "severity": "WARNING",
+      "message": "Unresolved convention: Insufficient gold examples with uncertainty language",
+      "csv_value": null,
+      "llm_value": null,
+      "policy_value": {
+        "pattern": "suspected/possible/R-O tear"
+      },
+      "affected_rules": [
+        "unresolved_convention"
+      ]
+    }
+  ]
+}

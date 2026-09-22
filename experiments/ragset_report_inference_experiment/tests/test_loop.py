@@ -1,6 +1,6 @@
 from experiments.ragset_report_inference_experiment.src.ragset_inference.loop import run_report
 from experiments.ragset_report_inference_experiment.src.ragset_inference.schemas import (
-    LabelValue, ReportPrediction, ValidationIssue, ValidationResult,
+    LabelValue, ReportPrediction, ValidationIssue, ValidationResult, LABEL_KEYS,
 )
 
 
@@ -24,13 +24,18 @@ def test_retry_then_pass():
 
     def validate(**kwargs):
         calls["v"] += 1
-        return ValidationResult(
-            status="PASS" if calls["v"] == 2 else "FAIL",
-            issues=[],
-        )
+        if calls["v"] == 1:
+            # First attempt: semantic failure with real issue
+            return ValidationResult(
+                status="FAIL",
+                issues=[ValidationIssue(label="ACL", predicted=0, corrected=1, reason="test", evidence=[])],
+            )
+        else:
+            # Second attempt: PASS
+            return ValidationResult(status="PASS", issues=[])
 
     result = run_report(
-        "x", "report", infer, validate, {}, max_attempts=3
+        "x", "report", infer, validate, {}, max_attempts=3, labels=LABEL_KEYS
     )
     assert result["status"] == "passed"
     assert len(result["attempts"]) == 2
@@ -71,8 +76,8 @@ def test_retry_then_fail_needs_review():
         ])
 
     result = run_report(
-        "x", "report", infer, validate, {}, max_attempts=3
+        "x", "report", infer, validate, {}, max_attempts=3, labels=LABEL_KEYS
     )
     assert result["status"] == "needs_review"
     assert len(result["attempts"]) == 3
-    assert result["review_reason"] == "Maximum attempts reached without validator PASS"
+    assert "Maximum attempts reached without validator PASS" in result["review_reason"]

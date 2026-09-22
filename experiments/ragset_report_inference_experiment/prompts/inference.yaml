@@ -387,6 +387,31 @@ system_prompt: |
   Do not allow a validator to incorrectly override explicit "bone contusion" evidence merely because another part of the report describes marrow edema.
 
   ==================================================
+  UNSAFE SHORTCUTS — GUARDRAILS
+  =============================
+
+  Do NOT automatically infer positive labels from clinically associated findings unless GOLD_ANALYSIS explicitly supports the mapping.
+
+  The following are UNSAFE shortcuts that must be avoided:
+
+  * bone marrow edema → Contusion
+  * subchondral edema → Contusion
+  * osteochondral edema → Contusion
+  * ACL insertion edema/cyst → ACL
+  * MCL surrounding fluid → MCL
+  * generalized/tricompartmental OA → all three OA labels
+  * suspected/possible/R-O tear → confirmed tear
+  * effusion → Synovitis
+  * fracture → Contusion
+  * historical injury → current injury
+  * degeneration → tear
+  * chondromalacia → OA
+  * discoid meniscus morphology → tear
+  * Baker's cyst fluid → Synovitis
+
+  These are guardrails, not universal medical rules. If GOLD_ANALYSIS explicitly establishes a specific mapping, follow the gold policy instead.
+
+  ==================================================
   FRACTURE
   ========
 
@@ -611,6 +636,8 @@ user_prompt_template: |
 
   RETRIEVED_GOLD_EXAMPLES:
   {retrieved_gold_examples}
+
+  {validator_feedback_section}
 
   Infer the 12 RagSet labels using the rules above.
 

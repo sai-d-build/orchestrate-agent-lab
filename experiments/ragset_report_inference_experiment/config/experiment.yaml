@@ -18,7 +18,7 @@ models:
   validator_profiles:
     - nvidia-ragset-validator
     - nvidia-ragset-validator-usf
-  gold_analysis_profile: nvidia-ragset-gold-analysis
+  gold_analysis_profile: nvidia-ragset-gold-analysis-usf
   temperature: 0
 
 loop:

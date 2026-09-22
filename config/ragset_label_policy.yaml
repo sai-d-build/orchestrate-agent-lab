@@ -1,0 +1,299 @@
+# RagSet Label Policy - Locked Gold Convention
+# 
+# This file is the single source of truth for label annotation conventions
+# derived from the 58-case gold set. All conventions are grounded in
+# observed gold annotations, not clinical assumptions.
+#
+# Generated from gold_analysis.json (58 gold reports)
+# 
+# Status definitions:
+#   SAFE_POSITIVE: Pattern consistently maps to label=1 in gold
+#   SAFE_NEGATIVE: Pattern consistently maps to label=0 in gold
+#   CONTEXTUAL: Pattern requires additional context (anatomy, certainty, etc.)
+#   UNSAFE: Pattern should NOT be used as standalone rule
+#   UNRESOLVED: Insufficient gold evidence to determine convention
+
+labels:
+  ACL:
+    gold_positive: 24
+    gold_negative: 34
+    conventions:
+      - pattern: "explicit ACL tear/rupture/sprain/injury"
+        status: SAFE_POSITIVE
+        supporting_count: 24
+        contradicting_count: 0
+        example_uids: ["10170898615867673028696505248839028269", "11382021393803389951964005983002209238"]
+      - pattern: "ACL intact/normal/preserved"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 34
+        example_uids: ["10170898615867673028696505248839028269", "10306159113324811538703788080836752052"]
+      - pattern: "increased signal without explicit tear"
+        status: UNSAFE
+        rationale: "Increased signal alone does not establish tear; requires explicit tear language"
+
+  MCL:
+    gold_positive: 9
+    gold_negative: 49
+    conventions:
+      - pattern: "explicit MCL tear/rupture/sprain/partial tear/grade 2"
+        status: SAFE_POSITIVE
+        supporting_count: 9
+        contradicting_count: 0
+        example_uids: ["12505035424093604269515328931488770819", "12606657226568558340797193167488111973"]
+      - pattern: "MCL intact/normal/within normal limits/sin alteraciones"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 49
+        example_uids: ["10095687747295410396510538520594649149", "10170898615867673028696505248839028269"]
+      - pattern: "periligamentous fluid/edema without explicit tear"
+        status: UNSAFE
+        rationale: "Only 1 positive example; no negative counterexamples"
+      - pattern: "suspect/possible MCL injury"
+        status: UNRESOLVED
+        rationale: "Only 1 positive example with 'suspect grade 2'; no negative counterexamples"
+
+  Medial_Meniscus:
+    gold_positive: 26
+    gold_negative: 32
+    conventions:
+      - pattern: "explicit medial meniscus tear/rupture/horizontal/vertical/radial/root/complex"
+        status: SAFE_POSITIVE
+        supporting_count: 26
+        contradicting_count: 0
+      - pattern: "explicit no-tear/normal/intact"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 32
+      - pattern: "degenerative change/mucoid degeneration without explicit tear"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 4
+      - pattern: "grade II signal without explicit tear"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 4
+      - pattern: "suspected/possible/R-O tear"
+        status: UNRESOLVED
+        rationale: "Insufficient gold examples with uncertainty language"
+      - pattern: "discoid morphology"
+        status: SAFE_NEGATIVE
+        rationale: "Discoid morphology alone does not equal tear"
+
+  Lateral_Meniscus:
+    gold_positive: 23
+    gold_negative: 35
+    conventions:
+      - pattern: "explicit lateral meniscus tear/rupture/horizontal/vertical/radial/root/complex"
+        status: SAFE_POSITIVE
+        supporting_count: 23
+        contradicting_count: 0
+      - pattern: "explicit no-tear/normal/intact"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 35
+      - pattern: "degenerative change/mucoid degeneration without explicit tear"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 4
+      - pattern: "grade II signal without explicit tear"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 4
+      - pattern: "suspected/possible/R-O tear"
+        status: UNRESOLVED
+        rationale: "Insufficient gold examples with uncertainty language"
+      - pattern: "meniscal extrusion"
+        status: SAFE_POSITIVE
+        supporting_count: 6
+        contradicting_count: 0
+        rationale: "Extrusion always associated with tear in gold"
+
+  Medial_OA:
+    gold_positive: 15
+    gold_negative: 43
+    conventions:
+      - pattern: "explicit medial compartment OA/osteoarthritis/chondrosis/chondrosis grade 3-4"
+        status: SAFE_POSITIVE
+        supporting_count: 15
+        contradicting_count: 0
+      - pattern: "generalized/tricompartmental OA without medial specification"
+        status: CONTEXTUAL
+        supporting_count: 2
+        contradicting_count: 2
+      - pattern: "medial compartment chondromalacia/chondropathy/chondrosis"
+        status: SAFE_POSITIVE
+        supporting_count: 2
+        contradicting_count: 0
+      - pattern: "chondromalacia without compartment specification"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 2
+
+  Lateral_OA:
+    gold_positive: 11
+    gold_negative: 47
+    conventions:
+      - pattern: "explicit lateral compartment OA/osteoarthritis/chondrosis"
+        status: SAFE_POSITIVE
+        supporting_count: 11
+        contradicting_count: 0
+      - pattern: "generalized/tricompartmental OA without lateral specification"
+        status: CONTEXTUAL
+        supporting_count: 2
+        contradicting_count: 2
+      - pattern: "lateral compartment chondromalacia/chondropathy"
+        status: SAFE_POSITIVE
+        supporting_count: 1
+        contradicting_count: 0
+      - pattern: "chondromalacia without compartment specification"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 2
+
+  PF_OA:
+    gold_positive: 21
+    gold_negative: 37
+    conventions:
+      - pattern: "explicit patellofemoral OA/osteoarthritis/chondrosis"
+        status: SAFE_POSITIVE
+        supporting_count: 21
+        contradicting_count: 0
+      - pattern: "patellar/trochlear chondromalacia/chondropathy/chondrosis"
+        status: SAFE_POSITIVE
+        supporting_count: 3
+        contradicting_count: 0
+      - pattern: "generalized chondromalacia without PF specification"
+        status: CONTEXTUAL
+        supporting_count: 1
+        contradicting_count: 2
+      - pattern: "chondromalacia without compartment specification"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 2
+
+  Effusion:
+    gold_positive: 35
+    gold_negative: 23
+    conventions:
+      - pattern: "explicit joint effusion/joint fluid/effusion"
+        status: SAFE_POSITIVE
+        supporting_count: 35
+        contradicting_count: 0
+      - pattern: "minimal/trace/small effusion"
+        status: SAFE_POSITIVE
+        supporting_count: 35
+        contradicting_count: 0
+      - pattern: "no effusion"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 23
+
+  Synovitis:
+    gold_positive: 27
+    gold_negative: 31
+    conventions:
+      - pattern: "explicit synovitis/synovial hypertrophy/thickening"
+        status: SAFE_POSITIVE
+        supporting_count: 27
+        contradicting_count: 0
+      - pattern: "effusion alone without explicit synovitis"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 31
+      - pattern: "Baker's cyst fluid alone"
+        status: UNSAFE
+        rationale: "Effusion/Baker's fluid alone does not establish synovitis"
+
+  Bakers:
+    gold_positive: 12
+    gold_negative: 46
+    conventions:
+      - pattern: "explicit Baker's/Becker/popliteal cyst"
+        status: SAFE_POSITIVE
+        supporting_count: 12
+        contradicting_count: 0
+      - pattern: "other cysts (ganglion, suprapatellar, infrapatellar bursitis)"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 46
+
+  Contusion:
+    gold_positive: 19
+    gold_negative: 39
+    conventions:
+      - pattern: "explicit bone contusion/bone bruise/bone infarct"
+        status: SAFE_POSITIVE
+        supporting_count: 19
+        contradicting_count: 0
+      - pattern: "bone marrow edema/subchondral edema/osteochondral edema without explicit contusion"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 39
+      - pattern: "chronic osteochondral/subchondral edema"
+        status: SAFE_NEGATIVE
+        rationale: "Chronic/degenerative edema not automatically acute contusion"
+
+  Fracture:
+    gold_positive: 18
+    gold_negative: 40
+    conventions:
+      - pattern: "explicit fracture/avulsion fracture"
+        status: SAFE_POSITIVE
+        supporting_count: 18
+        contradicting_count: 0
+      - pattern: "bone marrow edema alone"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 40
+      - pattern: "generic bone abnormality"
+        status: SAFE_NEGATIVE
+        rationale: "Generic bone abnormality does not establish fracture"
+
+# Cross-label constraints
+cross_label_constraints:
+  - rule: "Do not infer one label merely because another label is positive"
+    examples:
+      - "ACL tear does not imply MCL tear"
+      - "Effusion does not imply Synovitis"
+      - "Fracture does not imply Contusion"
+      - "Generalized OA does not imply all three compartment OA"
+      - "Meniscal degeneration does not imply tear"
+      - "Meniscal extrusion implies tear (SAFE_POSITIVE)"
+
+# Evidence rules
+evidence_rules:
+  - "Evidence must be verbatim from ORIGINAL_REPORT"
+  - "Evidence must be in original language"
+  - "Null evidence is acceptable for correct negative labels"
+  - "Evidence quality alone must not change PASS to FAIL"
+  - "Explicit negative evidence only supports the finding it addresses"
+
+# Uncertainty handling
+uncertainty_rules:
+  - "Suspected/possible/R-O/suspicious/cannot exclude → classify as UNCERTAIN first"
+  - "Then apply GOLD_ANALYSIS to map uncertainty to binary label"
+  - "Do not universally force UNCERTAIN → 0 or UNCERTAIN → 1"
+  - "If UNRESOLVED in gold, do not force a binary decision"
+
+# Temporal/historical rules
+temporal_rules:
+  - "Historical/chronic/postoperative findings do not automatically equal current positive"
+  - "Current explicit imaging findings take precedence unless GOLD_ANALYSIS says otherwise"
+  - "Acute trauma context increases likelihood of positive for trauma-related labels"
+
+# Anatomical specificity
+anatomical_rules:
+  - "Medial/Lateral structures must be evaluated independently"
+  - "OA compartments require compartment-specific evidence"
+  - "Patellar/trochlear findings only support PF_OA"
+  - "MCL/ACL require structure-specific evidence"
+  - "Medial/Lateral meniscus evaluated independently"
+
+# Explicit evidence override
+explicit_evidence_override:
+  - "When ORIGINAL_REPORT explicitly states a finding, do not negate using weaker indirect inference"
+  - "Example: 'bone contusion' → Contusion=1, do not change to 0 because of 'marrow edema'"
+  - "Example: 'ACL sprain' → ACL=1, do not change to 0 because of 'increased signal'"
+  - "Example: 'Baker's cyst' → Bakers=1, do not change to 0 because of 'popliteal fluid'"
+  - "Example: 'ACL intact' → ACL=0, do not change to 1 because another ligament is abnormal"

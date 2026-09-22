@@ -59,7 +59,7 @@ class ValidationIssue(BaseModel):
 
 class ValidationResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    status: Literal["PASS", "FAIL"]
+    status: Literal["PASS", "FAIL", "AMBIGUOUS"]
     issues: list[ValidationIssue] = Field(default_factory=list)
 
     @property

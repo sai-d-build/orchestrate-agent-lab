@@ -65,3 +65,69 @@ def label_profile_text(analysis: dict) -> str:
             for label, v in analysis["label_distribution"].items()
         )
     return "Gold analysis not available"
+
+
+def format_gold_policy_for_prompt(analysis: dict) -> str:
+    """Extract concise policy: SAFE rules, UNSAFE shortcuts, UNRESOLVED per label.
+    
+    Returns a compact representation suitable for prompt injection.
+    """
+    if not analysis or "label_specific" not in analysis:
+        return label_profile_text(analysis)
+    
+    parts = []
+    label_specific = analysis.get("label_specific", {})
+    
+    # Check if all 12 labels have analysis
+    missing_labels = [label for label in LABEL_COLUMNS if label not in label_specific or not label_specific[label]]
+    if missing_labels:
+        parts.append(f"NOTE: Insufficient gold evidence for: {', '.join(missing_labels)}")
+    
+    for label in LABEL_COLUMNS:
+        data = label_specific.get(label, {})
+        if not data:
+            parts.append(f"=== {label} ===\n  INSUFFICIENT_GOLD_EVIDENCE")
+            continue
+        
+        parts.append(f"=== {label} ===")
+        
+        # SAFE rules
+        safe_rules = data.get("safe_rules", [])
+        if safe_rules:
+            parts.append("  SAFE:")
+            for rule in safe_rules:
+                rule_text = rule.get("rule", "")
+                if rule_text:
+                    parts.append(f"    - {rule_text}")
+        
+        # UNSAFE shortcuts
+        unsafe = data.get("unsafe_shortcuts", [])
+        if unsafe:
+            parts.append("  UNSAFE (do not use as standalone rules):")
+            for us in unsafe:
+                pattern = us.get("pattern", "")
+                reason = us.get("reason", "")
+                if pattern:
+                    parts.append(f"    - {pattern}: {reason}")
+        
+        # UNRESOLVED rules
+        unresolved = data.get("unresolved_rules", [])
+        if unresolved:
+            parts.append("  UNRESOLVED:")
+            for ur in unresolved:
+                question = ur.get("question", "")
+                if question:
+                    parts.append(f"    - {question}")
+        
+        # CONTRADICTIONS
+        contradictions = data.get("contradictions", [])
+        if contradictions:
+            parts.append("  CONTRADICTIONS:")
+            for c in contradictions:
+                pattern = c.get("pattern", "")
+                ctype = c.get("contradiction_type", "")
+                explanation = c.get("explanation", "")
+                if pattern:
+                    parts.append(f"    - {pattern} ({ctype}): {explanation}")
+    
+    return "\n".join(parts) if parts else label_profile_text(analysis)
