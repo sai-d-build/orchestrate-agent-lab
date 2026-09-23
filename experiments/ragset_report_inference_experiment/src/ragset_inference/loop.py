@@ -4,7 +4,11 @@ from time import perf_counter
 import json
 import yaml
 from pathlib import Path
-from .schemas import ReportPrediction, ValidationResult, ValidationIssue, LABEL_KEYS
+from .schemas import (
+    ReportPrediction, ValidationResult, ValidationIssue,
+    CritiqueResult, CritiqueIssue, CritiqueIssueType, CritiqueStatus,
+    LABEL_KEYS
+)
 
 
 class FailureType(Enum):
@@ -131,6 +135,115 @@ def _detect_model1_stuck(model1_history: dict[str, list[int]], disputed_labels: 
     return stuck
 
 
+def _validate_critic_output(
+    critique: CritiqueResult,
+    report: str,
+    model1_prediction: ReportPrediction,
+) -> dict | None:
+    """
+    Deterministic integrity/safety checks on Model 2 (Critic) output.
+    
+    Does NOT make clinical judgments. Only validates structural integrity
+    and consistency with schema rules.
+    
+    Returns:
+        None if all checks pass
+        dict with safety_gate_failure details if any check fails
+    """
+    # 1. Validate Model 2 critique schema - already validated by Pydantic
+    
+    # 2-4. For each issue, check proposed_value constraints
+    for issue in critique.issues:
+        # 5. Validate all issue labels against canonical 12 labels
+        if issue.label not in LABEL_KEYS:
+            return {
+                "check": "label_validation",
+                "error": f"Invalid label '{issue.label}' in critique issue. Must be one of: {LABEL_KEYS}",
+                "issue": issue.model_dump(),
+            }
+        
+        # 2. CLEAR_POLICY_CONFLICT and CLEAR_REPORT_CONFLICT: proposed_value must be 0 or 1
+        if issue.issue_type in (CritiqueIssueType.CLEAR_POLICY_CONFLICT, CritiqueIssueType.CLEAR_REPORT_CONFLICT):
+            if issue.proposed_value is None:
+                return {
+                    "check": "proposed_value_required",
+                    "error": f"CLEAR_* issue for label '{issue.label}' must have proposed_value 0 or 1, got None",
+                    "issue": issue.model_dump(),
+                }
+            if issue.proposed_value not in (0, 1):
+                return {
+                    "check": "proposed_value_binary",
+                    "error": f"CLEAR_* issue for label '{issue.label}' proposed_value must be 0 or 1, got {issue.proposed_value}",
+                    "issue": issue.model_dump(),
+                }
+            # 4. For CLEAR_*: proposed_value must differ from model1_value
+            model1_val = model1_prediction.predictions[issue.label].value
+            if issue.proposed_value == model1_val:
+                return {
+                    "check": "proposed_value_differs",
+                    "error": f"CLEAR_* issue for label '{issue.label}' proposed_value ({issue.proposed_value}) must differ from model1_value ({model1_val})",
+                    "issue": issue.model_dump(),
+                }
+        
+        # 3. For UNRESOLVED_POLICY, REPORT_AMBIGUITY, INSUFFICIENT_EVIDENCE: proposed_value must be null
+        if issue.issue_type in (CritiqueIssueType.UNRESOLVED_POLICY, CritiqueIssueType.REPORT_AMBIGUITY, CritiqueIssueType.INSUFFICIENT_EVIDENCE):
+            if issue.proposed_value is not None:
+                return {
+                    "check": "proposed_value_null_required",
+                    "error": f"{issue.issue_type.value} issue for label '{issue.label}' must have proposed_value=null, got {issue.proposed_value}",
+                    "issue": issue.model_dump(),
+                }
+        
+        # 6-7. If Model 2 supplies evidence, verify verbatim in ORIGINAL_REPORT
+        if issue.evidence is not None and issue.evidence != "":
+            if issue.evidence not in report:
+                return {
+                    "check": "evidence_verbatim",
+                    "error": f"Evidence for label '{issue.label}' not found verbatim in ORIGINAL_REPORT: '{issue.evidence[:100]}...'",
+                    "issue": issue.model_dump(),
+                }
+    
+    # 8. Validate actionable: true iff at least one CLEAR_* issue exists
+    has_clear_issue = any(
+        issue.issue_type in (CritiqueIssueType.CLEAR_POLICY_CONFLICT, CritiqueIssueType.CLEAR_REPORT_CONFLICT)
+        for issue in critique.issues
+    )
+    if critique.actionable != has_clear_issue:
+        return {
+            "check": "actionable_consistency",
+            "error": f"actionable={critique.actionable} but has_clear_issue={has_clear_issue}",
+            "issue_count": len(critique.issues),
+            "clear_issues": [
+                i.label for i in critique.issues
+                if i.issue_type in (CritiqueIssueType.CLEAR_POLICY_CONFLICT, CritiqueIssueType.CLEAR_REPORT_CONFLICT)
+            ],
+        }
+    
+    # 9. Validate status consistency
+    clear_issues_exist = has_clear_issue
+    unresolved_ambiguity_issues = any(
+        issue.issue_type in (CritiqueIssueType.UNRESOLVED_POLICY, CritiqueIssueType.REPORT_AMBIGUITY, CritiqueIssueType.INSUFFICIENT_EVIDENCE)
+        for issue in critique.issues
+    )
+    
+    expected_status = None
+    if clear_issues_exist:
+        expected_status = CritiqueStatus.FAIL
+    elif unresolved_ambiguity_issues and not clear_issues_exist:
+        expected_status = CritiqueStatus.AMBIGUOUS
+    else:
+        expected_status = CritiqueStatus.PASS
+    
+    if critique.status != expected_status:
+        return {
+            "check": "status_consistency",
+            "error": f"status={critique.status.value} but expected={expected_status.value} (clear_issues={clear_issues_exist}, unresolved_ambiguity={unresolved_ambiguity_issues})",
+            "issue_types": [i.issue_type.value for i in critique.issues],
+        }
+    
+    return None
+
+
 def run_model1_attempt(
     report: str,
     gold_context: str,
@@ -196,6 +309,7 @@ def run_model1_attempt(
         system=INF_CFG["system_prompt"],
         user=user_prompt,
         validator_feedback=current_feedback,
+        attempt=attempt,
     )
 
     return prediction

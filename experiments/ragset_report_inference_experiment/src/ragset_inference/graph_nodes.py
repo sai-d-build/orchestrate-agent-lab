@@ -18,6 +18,7 @@ from experiments.ragset_report_inference_experiment.src.ragset_inference.loop im
     run_model1_attempt,
     _detect_validator_oscillation,
     _detect_model1_stuck,
+    _validate_critic_output,
 )
 from experiments.ragset_report_inference_experiment.src.ragset_inference.policy_loader import get_canonical_policy_text
 from experiments.ragset_report_inference_experiment.src.ragset_inference.retrieval import GoldRetriever
@@ -85,6 +86,7 @@ def initialize_node(state: RagSetState, *, retriever: GoldRetriever, inference_m
         "final_prediction": None,
         "review_reason": None,
         "trace_records": [],
+        "safety_gate_failure": None,
     })
 
     # Write initialize trace
@@ -221,6 +223,38 @@ def critic_node(state: RagSetState, *, critic_model: CriticModel) -> RagSetState
         ),
     )
 
+    # Deterministic safety gate: validate Critic output integrity
+    safety_gate_failure = _validate_critic_output(critique, report, prediction)
+    if safety_gate_failure:
+        # Log safety gate failure but don't alter Model 2's clinical conclusion
+        # Pass to Model 3 for workflow decision
+        safety_gate_failure["attempt"] = attempt
+        safety_gate_failure["stage"] = "validation"
+        # Create trace for safety gate failure
+        trace = TraceRecord(
+            timestamp_utc=datetime.now(timezone.utc).isoformat(),
+            study_instance_uid=study_uid,
+            graph_node="critic",
+            stage="validation",
+            attempt=attempt,
+            requested_model=critic_model.model,
+            actual_model=getattr(critic_model, 'last_actual_model', critic_model.model),
+            provider=critic_model.provider,
+            prompt_hash=_prompt_hash(VAL_CFG["system_prompt"]),
+            response_hash=_response_hash(critique.model_dump_json()),
+            latency_seconds=0.0,
+            input_tokens=None,
+            output_tokens=None,
+            status="safety_gate_failure",
+            error=json.dumps(safety_gate_failure, ensure_ascii=False),
+            judge_action=None,
+        )
+        new_state = dict(state)
+        new_state["current_critique"] = critique
+        new_state["safety_gate_failure"] = safety_gate_failure
+        new_state["trace_records"] = state["trace_records"] + [trace]
+        return new_state
+
     end = datetime.now(timezone.utc)
     latency = (end - start).total_seconds()
 
@@ -316,6 +350,7 @@ def judge_node(state: RagSetState, *, judge_model: JudgeModel) -> RagSetState:
             oscillating_labels=state["oscillating_labels"],
             stuck_detected=state["stuck_detected"],
             stuck_labels=state["stuck_labels"],
+            safety_gate_failure=json.dumps(state.get("safety_gate_failure"), ensure_ascii=False) if state.get("safety_gate_failure") else "null",
         ),
     )
 
@@ -338,6 +373,7 @@ def judge_node(state: RagSetState, *, judge_model: JudgeModel) -> RagSetState:
         oscillating_labels=state["oscillating_labels"],
         stuck_detected=state["stuck_detected"],
         stuck_labels=state["stuck_labels"],
+        safety_gate_failure=json.dumps(state.get("safety_gate_failure"), ensure_ascii=False) if state.get("safety_gate_failure") else "null",
     )
     full_prompt = JUDGE_CFG["system_prompt"] + "\n" + user_prompt
 

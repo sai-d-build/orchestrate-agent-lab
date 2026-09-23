@@ -46,3 +46,6 @@ class RagSetState(TypedDict):
 
     # Trace records (accumulated per node)
     trace_records: List[TraceRecord]
+
+    # Safety gate failure (deterministic integrity check on Critic output)
+    safety_gate_failure: Optional[dict]

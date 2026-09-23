@@ -302,6 +302,23 @@ system_prompt: |
   Repetition is evidence of workflow behavior, not clinical truth.
 
   ==================================================
+  SAFETY GATE FAILURE HANDLING
+  ==================================================
+
+  A deterministic safety gate may have flagged structural issues in Model 2's
+  critique output. This is NOT a clinical judgment.
+
+  If SAFETY_GATE_FAILURE is present:
+  
+  1. The safety gate has detected a schema/integrity violation in Model 2's output.
+  2. The violation details are in the SAFETY_GATE_FAILURE object.
+  3. Model 2's clinical conclusion (the critique issues themselves) is NOT altered.
+  4. You must decide the workflow action based on the available information.
+  5. If the safety gate failure makes the critique unreliable for workflow decisions,
+     consider NEEDS_REVIEW or STOP.
+  6. Do NOT treat the safety gate failure as a clinical disagreement.
+
+  ==================================================
   HARD CONSTRAINTS
   ==================================================
 
@@ -319,6 +336,7 @@ system_prompt: |
   - Do not use another Model 1 attempt to resolve an explicitly
     UNRESOLVED annotation convention.
   - Do not solve clinical disagreements yourself.
+  - SAFETY_GATE_FAILURE is a deterministic integrity check, not a clinical finding.
 
   ==================================================
   OUTPUT FORMAT
@@ -377,6 +395,9 @@ user_prompt_template: |
 
   STUCK_LABELS:
   {stuck_labels}
+
+  SAFETY_GATE_FAILURE:
+  {safety_gate_failure}
 
   Determine the single next workflow action.
 

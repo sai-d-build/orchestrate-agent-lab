@@ -14,7 +14,7 @@ from experiments.ragset_report_inference_experiment.src.ragset_inference.schemas
 )
 from experiments.ragset_report_inference_experiment.src.ragset_inference.graph_state import RagSetState
 from experiments.ragset_report_inference_experiment.src.ragset_inference.graph import build_graph, create_initial_state, route_judgment
-from experiments.ragset_report_inference_experiment.src.ragset_inference.loop import run_model1_attempt
+from experiments.ragset_report_inference_experiment.src.ragset_inference.loop import run_model1_attempt, _validate_critic_output
 
 
 def make_prediction(values: dict[str, int] | None = None) -> ReportPrediction:
@@ -323,6 +323,278 @@ class TestTraceRecord:
         assert trace.graph_node == "inference"
         assert trace.judge_action == "PASS"
         assert trace.response_hash is not None
+
+
+class TestSafetyGate:
+    """Test deterministic safety gate on Critic output."""
+
+    def make_prediction(self, values: dict[str, int] | None = None) -> ReportPrediction:
+        preds = {}
+        for label in LABEL_KEYS:
+            val = values.get(label, 0) if values else 0
+            preds[label] = LabelValue(value=val, evidence="")
+        return ReportPrediction(predictions=preds)
+
+    def make_critique(self, issues: list[CritiqueIssue]) -> CritiqueResult:
+        has_clear = any(
+            i.issue_type in (CritiqueIssueType.CLEAR_POLICY_CONFLICT, CritiqueIssueType.CLEAR_REPORT_CONFLICT)
+            for i in issues
+        )
+        has_unresolved = any(
+            i.issue_type in (CritiqueIssueType.UNRESOLVED_POLICY, CritiqueIssueType.REPORT_AMBIGUITY, CritiqueIssueType.INSUFFICIENT_EVIDENCE)
+            for i in issues
+        )
+        if has_clear:
+            status = CritiqueStatus.FAIL
+        elif has_unresolved:
+            status = CritiqueStatus.AMBIGUOUS
+        else:
+            status = CritiqueStatus.PASS
+        return CritiqueResult(
+            status=status,
+            issues=issues,
+            summary="test",
+            actionable=has_clear,
+            affected_labels=[i.label for i in issues if i.issue_type in (CritiqueIssueType.CLEAR_POLICY_CONFLICT, CritiqueIssueType.CLEAR_REPORT_CONFLICT)],
+        )
+
+    def test_safety_gate_passes_valid_critique(self):
+        """Valid critique with CLEAR_* issues passes safety gate."""
+        pred = self.make_prediction({"ACL": 0})
+        critique = self.make_critique([
+            CritiqueIssue(
+                label="ACL",
+                model1_value=0,
+                proposed_value=1,
+                issue_type=CritiqueIssueType.CLEAR_POLICY_CONFLICT,
+                evidence="ACL tear",
+                policy_rule="SAFE_POSITIVE: explicit tear",
+                feedback="Should be 1",
+            )
+        ])
+        result = _validate_critic_output(critique, "ACL tear present.", pred)
+        assert result is None
+
+    def test_safety_gate_catches_invalid_label(self):
+        """Invalid label in critique issue fails safety gate."""
+        pred = self.make_prediction()
+        critique = self.make_critique([
+            CritiqueIssue(
+                label="INVALID_LABEL",
+                model1_value=0,
+                proposed_value=1,
+                issue_type=CritiqueIssueType.CLEAR_POLICY_CONFLICT,
+                evidence="test",
+                policy_rule="test",
+                feedback="test",
+            )
+        ])
+        result = _validate_critic_output(critique, "report", pred)
+        assert result is not None
+        assert result["check"] == "label_validation"
+        assert "INVALID_LABEL" in result["error"]
+
+    def test_safety_gate_catches_clear_issue_without_proposed_value(self):
+        """CLEAR_* issue missing proposed_value fails."""
+        pred = self.make_prediction({"ACL": 0})
+        critique = self.make_critique([
+            CritiqueIssue(
+                label="ACL",
+                model1_value=0,
+                proposed_value=None,
+                issue_type=CritiqueIssueType.CLEAR_POLICY_CONFLICT,
+                evidence="ACL tear",
+                policy_rule="test",
+                feedback="test",
+            )
+        ])
+        result = _validate_critic_output(critique, "ACL tear present.", pred)
+        assert result is not None
+        assert result["check"] == "proposed_value_required"
+
+    def test_safety_gate_catches_clear_issue_proposed_value_not_binary(self):
+        """CLEAR_* issue with non-binary proposed_value fails."""
+        pred = self.make_prediction({"ACL": 0})
+        # Use model_construct to bypass Pydantic validation at creation
+        issue = CritiqueIssue.model_construct(
+            label="ACL",
+            model1_value=0,
+            proposed_value=2,
+            issue_type=CritiqueIssueType.CLEAR_POLICY_CONFLICT,
+            evidence="ACL tear",
+            policy_rule="test",
+            feedback="test",
+        )
+        critique = CritiqueResult(
+            status=CritiqueStatus.FAIL,
+            issues=[issue],
+            summary="test",
+            actionable=True,
+            affected_labels=["ACL"],
+        )
+        result = _validate_critic_output(critique, "ACL tear present.", pred)
+        assert result is not None
+        assert result["check"] == "proposed_value_binary"
+
+    def test_safety_gate_catches_clear_issue_proposed_equals_model1(self):
+        """CLEAR_* issue where proposed_value == model1_value fails."""
+        pred = self.make_prediction({"ACL": 1})
+        critique = self.make_critique([
+            CritiqueIssue(
+                label="ACL",
+                model1_value=1,
+                proposed_value=1,
+                issue_type=CritiqueIssueType.CLEAR_POLICY_CONFLICT,
+                evidence="ACL tear",
+                policy_rule="test",
+                feedback="test",
+            )
+        ])
+        result = _validate_critic_output(critique, "ACL tear present.", pred)
+        assert result is not None
+        assert result["check"] == "proposed_value_differs"
+
+    def test_safety_gate_catches_unresolved_with_proposed_value(self):
+        """UNRESOLVED_POLICY issue with proposed_value fails."""
+        pred = self.make_prediction({"ACL": 0})
+        critique = self.make_critique([
+            CritiqueIssue(
+                label="ACL",
+                model1_value=0,
+                proposed_value=1,
+                issue_type=CritiqueIssueType.UNRESOLVED_POLICY,
+                evidence="uncertain",
+                policy_rule="unresolved",
+                feedback="test",
+            )
+        ])
+        result = _validate_critic_output(critique, "report", pred)
+        assert result is not None
+        assert result["check"] == "proposed_value_null_required"
+
+    def test_safety_gate_catches_evidence_not_verbatim_in_report(self):
+        """Evidence not found verbatim in ORIGINAL_REPORT fails."""
+        pred = self.make_prediction({"ACL": 0})
+        critique = self.make_critique([
+            CritiqueIssue(
+                label="ACL",
+                model1_value=0,
+                proposed_value=1,
+                issue_type=CritiqueIssueType.CLEAR_REPORT_CONFLICT,
+                evidence="this text not in report",
+                policy_rule="test",
+                feedback="test",
+            )
+        ])
+        result = _validate_critic_output(critique, "ACL tear present.", pred)
+        assert result is not None
+        assert result["check"] == "evidence_verbatim"
+
+    def test_safety_gate_catches_actionable_mismatch(self):
+        """actionable flag inconsistent with CLEAR_* issues fails."""
+        pred = self.make_prediction({"ACL": 0})
+        # Create critique with CLEAR issue but actionable=False
+        critique = CritiqueResult(
+            status=CritiqueStatus.FAIL,
+            issues=[
+                CritiqueIssue(
+                    label="ACL",
+                    model1_value=0,
+                    proposed_value=1,
+                    issue_type=CritiqueIssueType.CLEAR_POLICY_CONFLICT,
+                    evidence="ACL tear",
+                    policy_rule="test",
+                    feedback="test",
+                )
+            ],
+            summary="test",
+            actionable=False,  # WRONG - should be True
+            affected_labels=["ACL"],
+        )
+        result = _validate_critic_output(critique, "ACL tear present.", pred)
+        assert result is not None
+        assert result["check"] == "actionable_consistency"
+
+    def test_safety_gate_catches_status_mismatch_fail_vs_ambiguous(self):
+        """status=FAIL with no CLEAR_* issues fails."""
+        pred = self.make_prediction({"ACL": 0})
+        critique = CritiqueResult(
+            status=CritiqueStatus.FAIL,  # Should be AMBIGUOUS
+            issues=[
+                CritiqueIssue(
+                    label="ACL",
+                    model1_value=0,
+                    proposed_value=None,
+                    issue_type=CritiqueIssueType.UNRESOLVED_POLICY,
+                    evidence="uncertain",  # Must be in report
+                    policy_rule="unresolved",
+                    feedback="test",
+                )
+            ],
+            summary="test",
+            actionable=False,
+            affected_labels=[],
+        )
+        # Use report that contains the evidence
+        result = _validate_critic_output(critique, "uncertain finding", pred)
+        assert result is not None
+        assert result["check"] == "status_consistency"
+
+    def test_safety_gate_catches_status_mismatch_pass_vs_fail(self):
+        """status=PASS with CLEAR_* issues fails."""
+        pred = self.make_prediction({"ACL": 0})
+        critique = CritiqueResult(
+            status=CritiqueStatus.PASS,  # Should be FAIL
+            issues=[
+                CritiqueIssue(
+                    label="ACL",
+                    model1_value=0,
+                    proposed_value=1,
+                    issue_type=CritiqueIssueType.CLEAR_POLICY_CONFLICT,
+                    evidence="ACL tear",
+                    policy_rule="test",
+                    feedback="test",
+                )
+            ],
+            summary="test",
+            actionable=True,
+            affected_labels=["ACL"],
+        )
+        result = _validate_critic_output(critique, "ACL tear present.", pred)
+        assert result is not None
+        assert result["check"] == "status_consistency"
+
+    def test_safety_gate_allows_empty_evidence(self):
+        """Empty or null evidence is allowed (not checked)."""
+        pred = self.make_prediction({"ACL": 0})
+        critique = self.make_critique([
+            CritiqueIssue(
+                label="ACL",
+                model1_value=0,
+                proposed_value=1,
+                issue_type=CritiqueIssueType.CLEAR_REPORT_CONFLICT,
+                evidence=None,
+                policy_rule="test",
+                feedback="test",
+            )
+        ])
+        result = _validate_critic_output(critique, "report", pred)
+        assert result is None
+
+        # Empty string also allowed
+        critique = self.make_critique([
+            CritiqueIssue(
+                label="ACL",
+                model1_value=0,
+                proposed_value=1,
+                issue_type=CritiqueIssueType.CLEAR_REPORT_CONFLICT,
+                evidence="",
+                policy_rule="test",
+                feedback="test",
+            )
+        ])
+        result = _validate_critic_output(critique, "report", pred)
+        assert result is None
 
 
 if __name__ == "__main__":

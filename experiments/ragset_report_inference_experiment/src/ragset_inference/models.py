@@ -205,6 +205,7 @@ class InferenceModel:
         system: str,
         user: str,
         validator_feedback: dict | None = None,
+        attempt: int | None = None,
     ) -> ReportPrediction:
         """
         Run inference with optional validator feedback for retry.

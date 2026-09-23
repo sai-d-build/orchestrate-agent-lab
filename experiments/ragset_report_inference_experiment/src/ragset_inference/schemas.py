@@ -167,6 +167,6 @@ class TraceRecord(BaseModel):
     latency_seconds: float | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
-    status: Literal["success", "error"]
+    status: Literal["success", "error", "safety_gate_failure"]
     error: str | None = None
     judge_action: JudgeAction | None = None
