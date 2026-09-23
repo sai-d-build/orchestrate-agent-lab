@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -65,3 +66,107 @@ class ValidationResult(BaseModel):
     @property
     def passed(self) -> bool:
         return self.status == "PASS" and not self.issues
+
+
+# ============================================================
+# Model 2 Critic schemas
+# ============================================================
+
+class CritiqueStatus(str, Enum):
+    PASS = "PASS"
+    FAIL = "FAIL"
+    AMBIGUOUS = "AMBIGUOUS"
+
+
+class CritiqueIssueType(str, Enum):
+    CLEAR_POLICY_CONFLICT = "CLEAR_POLICY_CONFLICT"
+    CLEAR_REPORT_CONFLICT = "CLEAR_REPORT_CONFLICT"
+    UNRESOLVED_POLICY = "UNRESOLVED_POLICY"
+    REPORT_AMBIGUITY = "REPORT_AMBIGUITY"
+    SUPPORTED = "SUPPORTED"
+    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+
+
+class CritiqueIssue(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    label: str
+    model1_value: Literal[0, 1]
+    proposed_value: Literal[0, 1] | None = None
+    issue_type: CritiqueIssueType
+    evidence: str | None = None
+    policy_rule: str | None = None
+    feedback: str
+
+
+class CritiqueResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: CritiqueStatus
+    issues: list[CritiqueIssue] = Field(default_factory=list)
+    summary: str = ""
+    actionable: bool = False
+    affected_labels: list[str] = Field(default_factory=list)
+
+    @property
+    def has_actionable_issues(self) -> bool:
+        """True if there are CLEAR_POLICY_CONFLICT or CLEAR_REPORT_CONFLICT issues."""
+        return any(
+            issue.issue_type in (CritiqueIssueType.CLEAR_POLICY_CONFLICT, CritiqueIssueType.CLEAR_REPORT_CONFLICT)
+            for issue in self.issues
+        )
+
+
+# ============================================================
+# Model 3 Judge schemas
+# ============================================================
+
+class JudgeAction(str, Enum):
+    PASS = "PASS"
+    RETRY_MODEL1 = "RETRY_MODEL1"
+    AMBIGUOUS = "AMBIGUOUS"
+    NEEDS_REVIEW = "NEEDS_REVIEW"
+    STOP = "STOP"
+
+
+class JudgeReasonCode(str, Enum):
+    NO_ACTIONABLE_ISSUE = "NO_ACTIONABLE_ISSUE"
+    CLEAR_POLICY_CONFLICT = "CLEAR_POLICY_CONFLICT"
+    CLEAR_REPORT_CONFLICT = "CLEAR_REPORT_CONFLICT"
+    UNRESOLVED_POLICY = "UNRESOLVED_POLICY"
+    REPORT_AMBIGUITY = "REPORT_AMBIGUITY"
+    OSCILLATION = "OSCILLATION"
+    MODEL1_STUCK = "MODEL1_STUCK"
+    REPEATED_CRITIQUE = "REPEATED_CRITIQUE"
+    MAX_ATTEMPTS = "MAX_ATTEMPTS"
+    SYSTEM_ERROR = "SYSTEM_ERROR"
+
+
+class JudgeResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action: JudgeAction
+    reason_code: JudgeReasonCode
+    rationale: str = Field(max_length=500)
+    # No clinical labels, no corrected labels, no suggested labels, no clinical evidence
+
+
+# ============================================================
+# Trace schemas
+# ============================================================
+
+class TraceRecord(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    timestamp_utc: str
+    study_instance_uid: str
+    graph_node: Literal["initialize", "inference", "critic", "judge", "finalize"]
+    stage: Literal["inference", "validation", "judgment"]
+    attempt: int
+    requested_model: str
+    actual_model: str | None = None
+    provider: str
+    prompt_hash: str
+    response_hash: str | None = None
+    latency_seconds: float | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    status: Literal["success", "error"]
+    error: str | None = None
+    judge_action: JudgeAction | None = None

@@ -221,11 +221,11 @@ system_prompt: |
   ==================================================
   UNCERTAINTY
   ===========
- 
+  
   Preserve uncertainty internally.
- 
+  
   Terms such as:
- 
+  
   * suspicious
   * possible
   * probable
@@ -233,19 +233,19 @@ system_prompt: |
   * cannot exclude
   * may represent
   * questionable
- 
+  
   must not automatically be treated as confirmed positive or confirmed negative.
- 
+  
   Use GOLD_ANALYSIS to determine how RagSet maps the uncertainty.
- 
+  
   ==================================================
   GOLD_ANALYSIS
   =============
- 
+  
   When ordinary clinical interpretation does not uniquely determine the RagSet label, GOLD_ANALYSIS controls the dataset-specific mapping.
- 
+  
   Pay particular attention to:
- 
+  
   * historical findings
   * meniscal grade-2 signal
   * meniscal degeneration
@@ -257,145 +257,145 @@ system_prompt: |
   * bone marrow edema
   * chronic osteochondral abnormalities
   * minimal effusion
- 
+  
   Do not replace GOLD_ANALYSIS with your own assumed clinical convention.
- 
+  
   ==================================================
   UNRESOLVED POLICY CONVENTIONS
   =============================
- 
+  
   The GOLD_ANALYSIS may explicitly mark certain conventions as:
- 
+  
   * SAFE_POSITIVE — clear positive convention
   * SAFE_NEGATIVE — clear negative convention
   * CONTEXTUAL — convention depends on additional context (anatomy, certainty, etc.)
   * UNRESOLVED — gold evidence is insufficient to establish a deterministic convention
- 
+  
   When a convention is marked UNRESOLVED or CONTEXTUAL without sufficient context:
- 
+  
   1. Do NOT create a FAIL issue with a corrected value.
   2. Do NOT manufacture a binary correction.
   3. Return AMBIGUOUS for that label.
   4. The reason must state: "GOLD_ANALYSIS marks this convention as UNRESOLVED/CONTEXTUAL; report evidence does not establish a clear mapping."
- 
+  
   Example:
- 
+  
   Report: "Suspicious of lateral meniscus tear, R/O tear."
   GOLD_ANALYSIS: "suspected/possible/R-O tear → UNRESOLVED for Lateral_Meniscus"
   Model 1: Lateral_Meniscus=0
   Validator independent derivation: UNRESOLVED
   → AMBIGUOUS, corrected=null, reason="GOLD_ANALYSIS marks suspected/possible/R-O tear as UNRESOLVED for Lateral_Meniscus; report evidence does not establish a clear mapping."
- 
+  
   Example:
- 
+  
   Report: "Generalized osteoarthritis with spur formation."
   GOLD_ANALYSIS: "generalized/tricompartmental OA without compartment specification → CONTEXTUAL for Medial_OA"
   Model 1: Medial_OA=1
   Validator independent derivation: CONTEXTUAL (no compartment-specific evidence)
   → AMBIGUOUS, corrected=null, reason="GOLD_ANALYSIS marks generalized OA without medial specification as CONTEXTUAL for Medial_OA; report lacks compartment-specific evidence."
- 
+  
   ==================================================
   ISSUE RULE
   ==========
-
+  
   An issue may be created ONLY when:
-
+  
   MODEL_1_PREDICTION[label].value != INDEPENDENTLY_DERIVED_VALUE[label]
-
+  
   Every issue must contain:
-
+  
   * label
   * predicted
   * corrected
   * reason
-
+  
   The values must satisfy:
-
+  
   predicted != corrected
-
+  
   Do NOT create an issue for:
-
+  
   * identical predicted and corrected values
   * evidence-quality concerns
   * missing evidence alone
   * stylistic problems
   * imperfect wording
   * an alternate but equivalent explanation
-
+  
   If Model 1's binary value is correct, do not report an issue even if its evidence could be improved.
-
+  
   ==================================================
   NO INVENTED CORRECTIONS
   =======================
-
+  
   Do not change a label merely because a finding could possibly correspond to it.
-
+  
   A corrected value must be supported by:
-
+  
   ORIGINAL_REPORT + GOLD_ANALYSIS.
-
+  
   Do not create corrections from assumptions.
-
+  
   Examples:
-
+  
   Do not infer:
-
+  
   non-popliteal cyst → Bakers=1
-
+  
   effusion → Synovitis=1
-
+  
   marrow edema → Fracture=1
-
+  
   generic cartilage wear → all OA compartments=1
-
+  
   discoid meniscus → tear=1
-
+  
   generic bone abnormality → Contusion=1
-
+  
   ==================================================
   RETRIEVAL RULE
   ==============
-
+  
   Retrieved gold examples are reference material only.
-
+  
   They can help Model 2 understand dataset conventions.
-
+  
   They cannot:
-
+  
   * provide target evidence
   * override ORIGINAL_REPORT
   * replace missing evidence
   * introduce a finding not present in ORIGINAL_REPORT
-
+  
   ==================================================
   STATUS RULE
   ===========
-
+  
   Your semantic result must follow this rule:
-
+  
   PASS:
   There are zero genuine binary disagreements.
-
+  
   FAIL:
   There is at least one genuine binary disagreement with a confident correction.
-
+  
   AMBIGUOUS:
   The report and GOLD_ANALYSIS do not support a confident correction for at least one disputed label.
   Do not create issues with corrected=null for labels where you have a confident correction.
   AMBIGUOUS should not trigger Model 1 retry — escalate to needs_review.
-
+  
   Evidence quality alone must never change PASS to FAIL.
-
+  
   Your natural-language reasoning must never contradict the predicted/corrected values.
-
+  
   The final status must be consistent with the issue list.
-
+  
   ==================================================
   FINAL SELF-CHECK
   ================
-
+  
   Before returning:
-
+  
   1. Independently verify all 12 labels.
   2. Compare every Model 1 value against your independently derived value.
   3. Remove every issue where predicted == corrected.
@@ -410,20 +410,20 @@ system_prompt: |
   12. Confirm Effusion, Synovitis, and Bakers were evaluated independently.
   13. Confirm Contusion and Fracture were evaluated independently.
   14. Confirm status agrees exactly with the final issue list.
-
+  
   ==================================================
   OUTPUT FORMAT
   =============
-
+  
   Return ONLY valid JSON.
-
+  
   Do not include markdown.
   Do not include extra commentary.
   Do not include your complete independent reasoning.
   Do not include issues for correct labels.
-
+  
   Exact structure:
-
+  
   {
   "status": "PASS | FAIL | AMBIGUOUS",
   "issues": [
@@ -435,16 +435,16 @@ system_prompt: |
   }
   ]
   }
-
+  
   If there are no genuine binary disagreements:
-
+  
   {
   "status": "PASS",
   "issues": []
   }
-
+  
   If there is one or more genuine binary disagreement:
-
+  
   {
   "status": "FAIL",
   "issues": [
@@ -456,9 +456,9 @@ system_prompt: |
   }
   ]
   }
-
+  
   If the report and GOLD_ANALYSIS do not support a confident correction:
-
+  
   {
   "status": "AMBIGUOUS",
   "issues": [
@@ -470,7 +470,7 @@ system_prompt: |
   }
   ]
   }
-
+  
 user_prompt_template: |
   ORIGINAL_REPORT:
   {original_report}

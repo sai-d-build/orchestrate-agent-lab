@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from enum import Enum
 from time import perf_counter
+import json
+import yaml
+from pathlib import Path
 from .schemas import ReportPrediction, ValidationResult, ValidationIssue, LABEL_KEYS
 
 
@@ -126,6 +129,76 @@ def _detect_model1_stuck(model1_history: dict[str, list[int]], disputed_labels: 
             if len(set(history[-min_attempts:])) == 1:
                 stuck.append(label)
     return stuck
+
+
+def run_model1_attempt(
+    report: str,
+    gold_context: str,
+    policy: str,
+    labels: list[str],
+    infer,
+    previous_prediction=None,
+    validator_feedback=None,
+    attempt: int = 1,
+) -> "ReportPrediction":
+    """
+    Execute ONE Model 1 inference attempt with optional validator feedback.
+
+    This is the semantic core of the retry mechanism — full 12-label regeneration
+    with feedback injection — WITHOUT the multi-attempt orchestration loop.
+
+    Extracted from run_report() for use by LangGraph orchestration.
+
+    Args:
+        report: The original MRI report text
+        gold_context: Retrieved gold examples as formatted string
+        policy: Canonical policy text
+        labels: List of 12 label keys (LABEL_KEYS)
+        infer: Inference callable (InferenceModel.run)
+        previous_prediction: Previous Model 1 prediction for retry context
+        validator_feedback: Model 2 critique feedback for retry reconsideration
+        attempt: 1-indexed attempt number
+
+    Returns:
+        ReportPrediction with all 12 labels regenerated
+    """
+    # Load inference prompt config
+    PROMPTS_DIR = Path(__file__).parent.parent.parent / "prompts"
+    with open(PROMPTS_DIR / "inference.yaml", "r", encoding="utf-8") as f:
+        INF_CFG = yaml.safe_load(f)
+
+    # Prepare feedback for Model 1 - only for retry attempts
+    current_feedback = validator_feedback if attempt > 1 else None
+
+    # Build template variables for the inference prompt
+    template_vars = {
+        "original_report": report,
+        "gold_analysis": policy,
+        "retrieved_gold_examples": gold_context,
+    }
+    if current_feedback:
+        feedback_json = json.dumps(current_feedback, ensure_ascii=False, indent=2)
+        template_vars["validator_feedback_section"] = (
+            "VALIDATOR FEEDBACK (for reconsideration, NOT as evidence):\n"
+            f"{feedback_json}\n\n"
+            "Re-read the ORIGINAL_REPORT from scratch. Validator feedback identifies a disputed interpretation; "
+            "it is not automatically ground truth. Recompute the affected labels using the ORIGINAL_REPORT "
+            "and GOLD ANNOTATION POLICY. Do not blindly copy the validator correction."
+        )
+    else:
+        template_vars["validator_feedback_section"] = ""
+
+    # Build user prompt
+    user_prompt = INF_CFG["user_prompt_template"].format(**template_vars)
+
+    # Call the inference model
+    prediction = infer(
+        system=INF_CFG["system_prompt"],
+        user=user_prompt,
+        validator_feedback=current_feedback,
+    )
+
+    return prediction
 
 
 def run_report(

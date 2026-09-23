@@ -102,10 +102,17 @@ def make_validate_fn(model, val_cfg, trace_collector, labels, gold_analysis):
     """
 
     def validate_fn(**kwargs):
+        # Extract Model 1 evidence for the critique prompt
+        prediction = kwargs["prediction"]
+        model_1_evidence = {}
+        for label, pred in prediction.predictions.items():
+            model_1_evidence[label] = pred.evidence
+        
         user = val_cfg["user_prompt_template"].format(
             original_report=kwargs["report"],
             gold_analysis=gold_analysis,
-            model_1_prediction=kwargs["prediction"].model_dump_json(),
+            model_1_prediction=prediction.model_dump_json(),
+            model_1_evidence=json.dumps(model_1_evidence, ensure_ascii=False, indent=2),
             retrieved_gold_examples=kwargs.get("gold_examples", ""),
         )
         report_id = kwargs["report_id"]

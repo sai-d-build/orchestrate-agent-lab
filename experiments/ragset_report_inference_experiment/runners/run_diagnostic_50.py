@@ -1,15 +1,8 @@
 #!/usr/bin/env python3
 """
-Run the existing pipeline on 50 diagnostic reports and save complete diagnostic traces.
+Run the LangGraph pipeline on 50 diagnostic reports and save complete diagnostic traces.
 
-Uses the production inference path exactly as implemented:
-- canonical policy loader
-- startup validation gate
-- Model 1
-- Model 2
-- retry loop
-- AMBIGUOUS handling
-- trace collection
+Uses the LangGraph orchestration with Model 1 (Inference), Model 2 (Critic), Model 3 (Judge).
 """
 
 import json
@@ -29,127 +22,10 @@ from experiments.ragset_report_inference_experiment.src.ragset_inference.policy_
 from experiments.ragset_report_inference_experiment.src.ragset_inference.data import load_train, split_gold, LABEL_COLUMNS
 from experiments.ragset_report_inference_experiment.src.ragset_inference.gold import format_gold_examples
 from experiments.ragset_report_inference_experiment.src.ragset_inference.retrieval import GoldRetriever
-from experiments.ragset_report_inference_experiment.src.ragset_inference.models import InferenceModel, ValidatorModel
-from experiments.ragset_report_inference_experiment.src.ragset_inference.loop import run_report
+from experiments.ragset_report_inference_experiment.src.ragset_inference.models import InferenceModel, CriticModel, JudgeModel
+from experiments.ragset_report_inference_experiment.src.ragset_inference.graph import build_graph, create_initial_state
 from experiments.ragset_report_inference_experiment.src.ragset_inference.trace import write_trace
-from experiments.ragset_report_inference_experiment.src.ragset_inference.schemas import ReportPrediction, ValidationResult, ValidationIssue, LABEL_KEYS
-
-
-def make_infer_fn(model, inf_cfg, trace_collector, labels, gold_analysis):
-    """Factory that creates an infer closure with captured dependencies."""
-    def infer_fn(**kwargs):
-        template_vars = {
-            "original_report": kwargs["report"],
-            "gold_analysis": gold_analysis,
-            "retrieved_gold_examples": kwargs.get("gold_examples", ""),
-        }
-        validator_feedback = kwargs.get("validator_feedback")
-        if validator_feedback:
-            feedback_json = json.dumps(validator_feedback, ensure_ascii=False, indent=2)
-            template_vars["validator_feedback_section"] = (
-                "VALIDATOR FEEDBACK (for reconsideration, NOT as evidence):\n"
-                f"{feedback_json}\n\n"
-                "Re-read the ORIGINAL_REPORT from scratch. Validator feedback identifies a disputed interpretation; "
-                "it is not automatically ground truth. Recompute the affected labels using the ORIGINAL_REPORT "
-                "and GOLD ANNOTATION POLICY. Do not blindly copy the validator correction."
-            )
-        else:
-            template_vars["validator_feedback_section"] = ""
-        
-        user = inf_cfg["user_prompt_template"].format(**template_vars)
-        report_id = kwargs["report_id"]
-        attempt = kwargs["attempt"]
-        start_time = time.time()
-        
-        try:
-            prediction = model.run(inf_cfg["system_prompt"], user, validator_feedback=validator_feedback)
-            actual_model = getattr(model, 'last_actual_model', model.model)
-            elapsed = time.time() - start_time
-            
-            trace_record = {
-                "report_id": report_id,
-                "stage": "inference",
-                "model": model.model,
-                "attempt": attempt,
-                "prompt": inf_cfg["system_prompt"] + "\n" + user,
-                "status": "success",
-                "provider": model.provider,
-                "actual_model": actual_model,
-                "latency_seconds": elapsed,
-            }
-            if trace_collector is not None:
-                trace_collector[report_id] = trace_record
-            return prediction
-        except Exception as e:
-            elapsed = time.time() - start_time
-            trace_record = {
-                "report_id": report_id,
-                "stage": "inference",
-                "model": model.model,
-                "attempt": attempt,
-                "prompt": inf_cfg["system_prompt"] + "\n" + user,
-                "status": "error",
-                "provider": model.provider,
-                "error": str(e),
-                "latency_seconds": elapsed,
-            }
-            if trace_collector is not None:
-                trace_collector[report_id] = trace_record
-            raise
-
-    return infer_fn
-
-
-def make_validate_fn(model, val_cfg, trace_collector, labels, gold_analysis):
-    """Factory that creates a validate closure with captured dependencies."""
-    def validate_fn(**kwargs):
-        user = val_cfg["user_prompt_template"].format(
-            original_report=kwargs["report"],
-            gold_analysis=gold_analysis,
-            model_1_prediction=kwargs["prediction"].model_dump_json(),
-            retrieved_gold_examples=kwargs.get("gold_examples", ""),
-        )
-        report_id = kwargs["report_id"]
-        attempt = kwargs["attempt"]
-        start_time = time.time()
-        
-        try:
-            validation = model.run(val_cfg["system_prompt"], user)
-            actual_model = getattr(model, 'last_actual_model', model.model)
-            elapsed = time.time() - start_time
-            
-            trace_record = {
-                "report_id": report_id,
-                "stage": "validation",
-                "model": model.model,
-                "attempt": attempt,
-                "prompt": val_cfg["system_prompt"] + "\n" + user,
-                "status": "success",
-                "provider": model.provider,
-                "actual_model": actual_model,
-                "latency_seconds": elapsed,
-            }
-            if trace_collector is not None:
-                trace_collector[report_id] = trace_record
-            return validation
-        except Exception as e:
-            elapsed = time.time() - start_time
-            trace_record = {
-                "report_id": report_id,
-                "stage": "validation",
-                "model": model.model,
-                "attempt": attempt,
-                "prompt": val_cfg["system_prompt"] + "\n" + user,
-                "status": "error",
-                "provider": model.provider,
-                "error": str(e),
-                "latency_seconds": elapsed,
-            }
-            if trace_collector is not None:
-                trace_collector[report_id] = trace_record
-            raise
-
-    return validate_fn
+from experiments.ragset_report_inference_experiment.src.ragset_inference.schemas import ReportPrediction, CritiqueResult, JudgeResult, LABEL_KEYS
 
 
 def compute_hash(text: str) -> str:
@@ -158,15 +34,13 @@ def compute_hash(text: str) -> str:
 
 
 def run_diagnostic_50():
-    """Run diagnostic on 50 selected reports."""
+    """Run diagnostic on 50 selected reports using LangGraph orchestration."""
     root = Path(__file__).resolve().parents[3]
     exp = root / "experiments/ragset_report_inference_experiment"
     
     # Load configs
     cfg = yaml.safe_load((exp / "config/experiment.yaml").read_text(encoding="utf-8"))
     labels_cfg = yaml.safe_load((exp / "config/labels.yaml").read_text(encoding="utf-8"))
-    inf_cfg = yaml.safe_load((exp / "prompts/inference.yaml").read_text(encoding="utf-8"))
-    val_cfg = yaml.safe_load((exp / "prompts/validation.yaml").read_text(encoding="utf-8"))
     
     labels = labels_cfg["labels"]
     
@@ -189,19 +63,25 @@ def run_diagnostic_50():
     # Use first worker's profiles for diagnostic (sequential)
     inf_profile = cfg["models"]["inference_profiles"][0]
     val_profile = cfg["models"]["validator_profiles"][0]
+    judge_profile = cfg["models"]["judge_profiles"][0]
     
     inf_config = models_cfg["models"][inf_profile]
     val_config = models_cfg["models"][val_profile]
+    judge_config = models_cfg["models"][judge_profile]
     
     inf_provider = inf_config.get("provider", "openrouter")
     val_provider = val_config.get("provider", "openrouter")
+    judge_provider = judge_config.get("provider", "openrouter")
     inf_api_key_env = inf_config.get("api_key_env", "OPENROUTER_API_KEY")
     val_api_key_env = val_config.get("api_key_env", "OPENROUTER_API_KEY")
+    judge_api_key_env = judge_config.get("api_key_env", "OPENROUTER_API_KEY")
     
     if not os.environ.get(inf_api_key_env):
         raise RuntimeError(f"{inf_api_key_env} is required for provider '{inf_provider}'")
     if not os.environ.get(val_api_key_env):
         raise RuntimeError(f"{val_api_key_env} is required for provider '{val_provider}'")
+    if not os.environ.get(judge_api_key_env):
+        raise RuntimeError(f"{judge_api_key_env} is required for provider '{judge_provider}'")
     
     model1 = InferenceModel(
         inf_config["model"],
@@ -210,12 +90,19 @@ def run_diagnostic_50():
         api_key=os.environ.get(inf_api_key_env),
         reasoning=inf_config.get("parameters", {}).get("reasoning"),
     )
-    model2 = ValidatorModel(
+    model2 = CriticModel(
         val_config["model"],
         max_tokens=val_config.get("parameters", {}).get("max_output_tokens", 4000),
         provider=val_provider,
         api_key=os.environ.get(val_api_key_env),
         reasoning=val_config.get("parameters", {}).get("reasoning"),
+    )
+    model3 = JudgeModel(
+        judge_config["model"],
+        max_tokens=judge_config.get("parameters", {}).get("max_output_tokens", 8000),
+        provider=judge_provider,
+        api_key=os.environ.get(judge_api_key_env),
+        reasoning=judge_config.get("parameters", {}).get("reasoning"),
     )
     
     # Load diagnostic 50 reports
@@ -234,19 +121,19 @@ def run_diagnostic_50():
     if results_path.exists():
         results_path.unlink()
     
-    # Create trace collectors (dict keyed by report_id)
-    infer_traces = {}
-    validate_traces = {}
+    # Build LangGraph
+    graph = build_graph()
     
-    # Create closures with trace collectors
-    infer_fn = make_infer_fn(model1, inf_cfg, infer_traces, labels, gold_analysis_text)
-    validate_fn = make_validate_fn(model2, val_cfg, validate_traces, labels, gold_analysis_text)
+    # Load prompt configs for trace reconstruction
+    inf_cfg = yaml.safe_load((exp / "prompts/inference.yaml").read_text(encoding="utf-8"))
+    val_cfg = yaml.safe_load((exp / "prompts/validation_critic.yaml").read_text(encoding="utf-8"))
+    judge_cfg = yaml.safe_load((exp / "prompts/judge.yaml").read_text(encoding="utf-8"))
     
     max_attempts = cfg["loop"]["max_attempts"]
     
     all_results = []
     
-    print(f"Running diagnostic on {len(diagnostic_df)} reports...")
+    print(f"Running diagnostic on {len(diagnostic_df)} reports with LangGraph orchestration...")
     
     for i, row in diagnostic_df.iterrows():
         report_id = str(row["StudyInstanceUID"])
@@ -264,36 +151,120 @@ def run_diagnostic_50():
         )
         retrieved_study_ids = [x['study_id'] for x in retrieved]
         
-        context = {
-            "gold_analysis": gold_analysis_text,
-            "gold_examples": relevant,
-        }
+        # Create initial LangGraph state
+        initial_state = create_initial_state(
+            study_instance_uid=report_id,
+            report=report,
+            max_attempts=max_attempts,
+        )
+        # Add context that the graph nodes need
+        initial_state["canonical_policy"] = gold_analysis_text
+        initial_state["retrieved_gold_context"] = "\n---\n".join(
+            f"STUDY {x['study_id']}\nLABELS: {x['labels']}\nREPORT:\n{x['report']}"
+            for x in retrieved
+        )
         
-        # Run the report through the pipeline
+        # Create trace collectors for this report
+        trace_records = []
+        
+        # Run the LangGraph pipeline
         try:
-            result = run_report(
-                report_id=report_id,
-                report=report,
-                infer=infer_fn,
-                validate=validate_fn,
-                context=context,
-                max_attempts=max_attempts,
-                labels=labels,
+            # We need to inject the models and retriever into the graph nodes
+            # The graph nodes expect these as kwargs, so we'll use a custom invoke
+            from experiments.ragset_report_inference_experiment.src.ragset_inference.graph_nodes import (
+                initialize_node, inference_node, critic_node, judge_node, finalize_node
             )
             
-            # Write collected traces for this report
-            if report_id in infer_traces:
-                write_trace(trace_path, **infer_traces[report_id])
-            if report_id in validate_traces:
-                write_trace(trace_path, **validate_traces[report_id])
+            # Manually execute the graph nodes in sequence to capture traces
+            # This mimics what graph.invoke() would do but with trace collection
+            state = initial_state
             
-            # Extract detailed attempt information
+            # Initialize
+            state = initialize_node(state, retriever=retriever, inference_model=model1, critic_model=model2, judge_model=model3)
+            
+            # Run the inference-critic-judge loop
+            for attempt_num in range(1, max_attempts + 1):
+                state["attempt"] = attempt_num
+                
+                # Inference
+                state = inference_node(state, inference_model=model1)
+                
+                # Critic
+                state = critic_node(state, critic_model=model2)
+                
+                # Judge
+                state = judge_node(state, judge_model=model3)
+                
+                # Check if we should continue or finalize
+                judgment = state.get("current_judgment")
+                if judgment:
+                    action = judgment.action
+                    if action.value == "RETRY_MODEL1" and state["attempt"] < state["max_attempts"]:
+                        # Continue to next attempt
+                        state["prediction_history"].append(state["current_prediction"])
+                        state["critique_history"].append(state["current_critique"])
+                        state["judgment_history"].append(state["current_judgment"])
+                        continue
+                    else:
+                        # Finalize
+                        state = finalize_node(state)
+                        break
+                else:
+                    # No judgment, finalize
+                    state = finalize_node(state)
+                    break
+            
+            # Collect all trace records from the state
+            trace_records = state.get("trace_records", [])
+            for trace in trace_records:
+                trace_dict = trace.model_dump() if hasattr(trace, 'model_dump') else trace
+                # Map TraceRecord fields to write_trace parameters
+                write_trace_kwargs = {
+                    "report_id": trace_dict.get("study_instance_uid"),
+                    "stage": trace_dict.get("stage"),
+                    "model": trace_dict.get("requested_model"),
+                    "attempt": trace_dict.get("attempt"),
+                    "prompt": "",  # Prompt not stored in TraceRecord
+                    "status": trace_dict.get("status", "success"),
+                    "latency_seconds": trace_dict.get("latency_seconds"),
+                    "input_tokens": trace_dict.get("input_tokens"),
+                    "output_tokens": trace_dict.get("output_tokens"),
+                    "error": trace_dict.get("error"),
+                    "provider": trace_dict.get("provider"),
+                    "actual_model": trace_dict.get("actual_model"),
+                    "graph_node": trace_dict.get("graph_node"),
+                    "judge_action": trace_dict.get("judge_action"),
+                    "response_hash": trace_dict.get("response_hash"),
+                }
+                # Filter out None values
+                write_trace_kwargs = {k: v for k, v in write_trace_kwargs.items() if v is not None}
+                write_trace(trace_path, **write_trace_kwargs)
+            
+            # Extract results
+            final_status = state.get("final_status", "error")
+            final_prediction = state.get("final_prediction")
+            review_reason = state.get("review_reason")
+            attempts = state.get("attempts", [])
+            
+            # Build result record
+            final_pred = final_prediction
+            if final_pred:
+                inferred_evidence = {
+                    label: final_pred.predictions[label].evidence
+                    for label in final_pred.predictions
+                    if final_pred.predictions[label].evidence
+                }
+                final_labels = {label: final_pred.predictions[label].value for label in final_pred.predictions}
+            else:
+                inferred_evidence = {}
+                final_labels = {}
+            
+            # Build attempts detail
             attempts_detail = []
-            for attempt in result["attempts"]:
+            for attempt in state.get("attempts", []):
                 pred = attempt.prediction
                 val = attempt.validation
                 
-                # Get label issues from validation (ValidationResult has 'issues' not 'label_reviews')
                 label_reviews = []
                 if hasattr(val, 'issues') and val.issues:
                     for issue in val.issues:
@@ -314,31 +285,13 @@ def run_diagnostic_50():
                     "failure_type": attempt.failure_type.value if attempt.failure_type else None,
                 })
             
-            final_pred = result["final_prediction"]
-            inferred_evidence = {
-                label: final_pred.predictions[label].evidence
-                for label in final_pred.predictions
-                if final_pred.predictions[label].evidence
-            }
-            
-            # Determine policy conventions used (from validation issues)
-            policy_conventions_used = []
-            unresolved_flags = []
-            for attempt in result["attempts"]:
-                if hasattr(attempt.validation, 'issues') and attempt.validation.issues:
-                    for issue in attempt.validation.issues:
-                        if issue.reason and ("UNRESOLVED" in issue.reason or "unresolved" in issue.reason.lower()):
-                            unresolved_flags.append(f"{issue.label}: {issue.reason}")
-                        if issue.reason and ("SAFE" in issue.reason or "UNSAFE" in issue.reason or "CONTEXTUAL" in issue.reason):
-                            policy_conventions_used.append(f"{issue.label}: {issue.reason[:200]}")
-            
-            # Classify failure category
+            # Determine failure category
             failure_category = "NONE"
-            if result["status"] == "needs_review":
-                review_reason = result.get("review_reason", "")
+            if final_status == "needs_review":
+                review_reason = state.get("review_reason", "")
                 if "maximum attempts" in review_reason.lower() and "semantic" in review_reason.lower():
                     failure_category = "MODEL1_STUCK"
-                elif "validator instability" in review_reason.lower():
+                elif "oscillation" in review_reason.lower() or "stuck" in review_reason.lower():
                     failure_category = "VALIDATOR_INSTABILITY"
                 elif "ambiguous" in review_reason.lower() or "AMBIGUOUS" in review_reason:
                     failure_category = "TRUE_AMBIGUITY"
@@ -346,9 +299,9 @@ def run_diagnostic_50():
                     failure_category = "SYSTEM_ERROR"
                 else:
                     failure_category = "POLICY_AMBIGUITY"
-            elif result["status"] == "error":
+            elif final_status == "error":
                 failure_category = "SYSTEM_ERROR"
-            elif len(result["attempts"]) > 1:
+            elif len(state.get("attempts", [])) > 1:
                 failure_category = "VALIDATOR_CORRECTION"
             
             # Build comprehensive result record
@@ -357,27 +310,31 @@ def run_diagnostic_50():
                 "report_hash": compute_hash(report),
                 "boundary_category": boundary_category,
                 "all_boundary_categories": all_categories,
-                "final_labels": {label: final_pred.predictions[label].value for label in final_pred.predictions},
+                "final_labels": final_labels,
                 "final_evidence": inferred_evidence,
-                "model1_prediction": result["attempts"][-1].prediction.model_dump() if result["attempts"] else {},
-                "model2_validation": result["attempts"][-1].validation.model_dump() if result["attempts"] else {},
-                "final_status": result["status"],
-                "review_reason": result.get("review_reason"),
-                "retry_count": len(result["attempts"]) - 1,
+                "model1_prediction": state["attempts"][-1].prediction.model_dump() if state.get("attempts") else {},
+                "model2_validation": state["attempts"][-1].validation.model_dump() if state.get("attempts") else {},
+                "final_status": final_status,
+                "review_reason": review_reason,
+                "retry_count": len(state.get("attempts", [])) - 1,
                 "failure_category": failure_category,
-                "policy_conventions_used": policy_conventions_used,
-                "unresolved_policy_flags": unresolved_flags,
+                "policy_conventions_used": [],
+                "unresolved_policy_flags": [],
                 "retrieved_gold_study_ids": retrieved_study_ids,
                 "requested_model_inference": model1.model,
                 "requested_model_validation": model2.model,
+                "requested_model_judge": model3.model,
                 "actual_model_inference": getattr(model1, 'last_actual_model', model1.model),
                 "actual_model_validation": getattr(model2, 'last_actual_model', model2.model),
+                "actual_model_judge": getattr(model3, 'last_actual_model', model3.model),
                 "provider_inference": model1.provider,
                 "provider_validation": model2.provider,
-                "latency_seconds": sum(a.elapsed_seconds for a in result["attempts"]),
-                "token_usage": {},  # Would need model support
+                "provider_judge": model3.provider,
+                "latency_seconds": sum(a.elapsed_seconds for a in state.get("attempts", [])),
+                "token_usage": {},
                 "prompt_hash_inference": compute_hash(inf_cfg["system_prompt"]),
                 "prompt_hash_validation": compute_hash(val_cfg["system_prompt"]),
+                "prompt_hash_judge": compute_hash(judge_cfg["system_prompt"]),
                 "gold_analysis_hash": compute_hash(gold_analysis_text),
                 "attempts": attempts_detail,
                 "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
@@ -389,7 +346,7 @@ def run_diagnostic_50():
             with results_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(result_record, ensure_ascii=False) + "\n")
             
-            print(f"  Status: {result['status']}, Retries: {len(result['attempts'])-1}, Failure: {failure_category}")
+            print(f"  Status: {final_status}, Retries: {len(state.get('attempts', []))-1}, Failure: {failure_category}")
             
         except Exception as e:
             print(f"  ERROR: {e}")

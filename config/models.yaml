@@ -125,6 +125,43 @@ models:
       zdr: true
       allow_fallbacks: false
 
+  # Judge model (Model 3) - Nemotron 3 Super 120B
+  nvidia-ragset-judge:
+    provider: nvidia
+    model: nvidia/nemotron-3-super-120b-a12b
+    api_key_env: NVIDIA_API_KEY
+    purpose: ragset_workflow_judge
+    capabilities:
+      - text
+      - reasoning
+      - structured_output
+    parameters:
+      temperature: 0
+      max_output_tokens: 8000
+      reasoning: false
+    provider_policy:
+      data_collection: deny
+      zdr: true
+      allow_fallbacks: false
+
+  nvidia-ragset-judge-usf:
+    provider: nvidia
+    model: nvidia/nemotron-3-super-120b-a12b
+    api_key_env: NVIDIA_API_KEY_USF
+    purpose: ragset_workflow_judge
+    capabilities:
+      - text
+      - reasoning
+      - structured_output
+    parameters:
+      temperature: 0
+      max_output_tokens: 8000
+      reasoning: false
+    provider_policy:
+      data_collection: deny
+      zdr: true
+      allow_fallbacks: false
+
   # ============================================================
   # OPENROUTER — FREE MODEL BENCHMARK (fallback)
   # Lesson 1.2

@@ -4,7 +4,17 @@ import re
 import time
 from openai import OpenAI
 from pydantic import ValidationError
-from .schemas import ReportPrediction, ValidationResult, LABEL_KEYS
+from .schemas import (
+    ReportPrediction,
+    ValidationResult,
+    CritiqueResult,
+    CritiqueIssue,
+    CritiqueIssueType,
+    CritiqueStatus,
+    JudgeResult,
+    JudgeAction,
+    LABEL_KEYS,
+)
 
 
 def _is_api_overload_error(error: Exception) -> bool:
@@ -357,6 +367,184 @@ class ValidatorModel:
                     time.sleep(delay)
                     continue
                 raise RuntimeError(f"Validation failed after {max_retries} attempts: {last_error}\nRaw: {text[:500] if 'text' in locals() else 'N/A'}")
+
+    def _extract_json(self, text: str) -> dict | None:
+        text = text.strip()
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+        match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(1))
+            except json.JSONDecodeError:
+                pass
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+        return None
+
+
+class CriticModel:
+    """Critic model (Model 2) using chat.completions API with JSON mode.
+
+    Critiques Model 1's predictions against the report and canonical policy.
+    Returns CritiqueResult with structured issues.
+    """
+
+    def __init__(
+        self,
+        model: str,
+        max_tokens: int = 4000,
+        provider: str | None = None,
+        api_key: str | None = None,
+        reasoning: bool | None = None,
+    ):
+        self.model = model
+        self.max_tokens = max_tokens
+        self.provider = provider or _detect_provider(model)
+        self.reasoning = reasoning
+        self.client = _create_client(self.provider, api_key)
+
+    def run(self, system: str, user: str) -> CritiqueResult:
+        extra_body = _build_extra_body(self.provider, self.reasoning)
+        kwargs = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "response_format": {"type": "json_object"},
+            "max_tokens": self.max_tokens,
+            "temperature": 0,
+        }
+        if extra_body:
+            kwargs["extra_body"] = extra_body
+
+        max_retries = 3
+        base_delay = 2.0
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                response = self.client.chat.completions.create(**kwargs)
+                self.last_actual_model = getattr(response, 'model', self.model)
+                text = response.choices[0].message.content
+                if text is None:
+                    raise RuntimeError("Model returned None content")
+                data = self._extract_json(text)
+                if data is None:
+                    raise RuntimeError(f"Could not extract JSON from critique response: {text[:200]}")
+                return CritiqueResult.model_validate(data)
+            except ValidationError as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    delay = _get_retry_delay(e, attempt, base_delay)
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(f"Critique schema failed after {max_retries} attempts: {e}\nRaw: {text[:500] if 'text' in locals() else 'N/A'}")
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    delay = _get_retry_delay(e, attempt, base_delay)
+                    if _is_api_overload_error(e):
+                        print(f"  API overload detected (attempt {attempt + 1}/{max_retries}), waiting {delay}s before retry...")
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(f"Critique failed after {max_retries} attempts: {last_error}\nRaw: {text[:500] if 'text' in locals() else 'N/A'}")
+
+    def _extract_json(self, text: str) -> dict | None:
+        text = text.strip()
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+        match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(1))
+            except json.JSONDecodeError:
+                pass
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+        return None
+
+
+class JudgeModel:
+    """Judge model (Model 3) using chat.completions API with JSON mode.
+
+    Determines workflow action based on Model 1 prediction and Model 2 critique.
+    Returns JudgeResult with workflow action only (no clinical labels).
+    """
+
+    def __init__(
+        self,
+        model: str,
+        max_tokens: int = 4000,
+        provider: str | None = None,
+        api_key: str | None = None,
+        reasoning: bool | None = None,
+    ):
+        self.model = model
+        self.max_tokens = max_tokens
+        self.provider = provider or _detect_provider(model)
+        self.reasoning = reasoning
+        self.client = _create_client(self.provider, api_key)
+
+    def run(self, system: str, user: str) -> JudgeResult:
+        extra_body = _build_extra_body(self.provider, self.reasoning)
+        kwargs = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "response_format": {"type": "json_object"},
+            "max_tokens": self.max_tokens,
+            "temperature": 0,
+        }
+        if extra_body:
+            kwargs["extra_body"] = extra_body
+
+        max_retries = 3
+        base_delay = 2.0
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                response = self.client.chat.completions.create(**kwargs)
+                self.last_actual_model = getattr(response, 'model', self.model)
+                text = response.choices[0].message.content
+                if text is None:
+                    raise RuntimeError("Model returned None content")
+                data = self._extract_json(text)
+                if data is None:
+                    raise RuntimeError(f"Could not extract JSON from judge response: {text[:200]}")
+                return JudgeResult.model_validate(data)
+            except ValidationError as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    delay = _get_retry_delay(e, attempt, base_delay)
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(f"Judge schema failed after {max_retries} attempts: {e}\nRaw: {text[:500] if 'text' in locals() else 'N/A'}")
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    delay = _get_retry_delay(e, attempt, base_delay)
+                    if _is_api_overload_error(e):
+                        print(f"  API overload detected (attempt {attempt + 1}/{max_retries}), waiting {delay}s before retry...")
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(f"Judge failed after {max_retries} attempts: {last_error}\nRaw: {text[:500] if 'text' in locals() else 'N/A'}")
 
     def _extract_json(self, text: str) -> dict | None:
         text = text.strip()
