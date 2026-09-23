@@ -771,5 +771,455 @@ labels:
             os.unlink(unresolved_policy_path)
 
 
+    def test_validator_instability_flips_corrections(self):
+        """Test 25: Validator instability - corrections flip across attempts.
+        
+        This reproduces the issue where validator gives contradictory corrections:
+        Attempt 1: Contusion 0 -> 1
+        Attempt 2: Contusion 1 -> 0
+        Attempt 3: Contusion 1 -> 1
+        """
+        pred1 = make_mock_prediction({"Contusion": 0, **{l: 0 for l in LABEL_COLUMNS if l != "Contusion"}})
+        pred2 = make_mock_prediction({"Contusion": 1, **{l: 0 for l in LABEL_COLUMNS if l != "Contusion"}})
+        pred3 = make_mock_prediction({"Contusion": 1, **{l: 0 for l in LABEL_COLUMNS if l != "Contusion"}})
+        
+        # Validator flips: 0->1, then 1->0, then 1->1
+        val1 = make_mock_validation("FAIL", [ValidationIssue(label="Contusion", predicted=0, corrected=1, reason="", evidence=[])])
+        val2 = make_mock_validation("FAIL", [ValidationIssue(label="Contusion", predicted=1, corrected=0, reason="", evidence=[])])
+        val3 = make_mock_validation("FAIL", [ValidationIssue(label="Contusion", predicted=1, corrected=1, reason="", evidence=[])])
+        
+        mock_infer = MagicMock(side_effect=[pred1, pred2, pred3])
+        mock_validate = MagicMock(side_effect=[val1, val2, val3])
+        
+        result = run_report(
+            report_id="test-025",
+            report="Bone marrow edema.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+        # Check that VALIDATOR_INSTABILITY was detected
+        unstable_attempts = [a for a in result["attempts"] if a.failure_type.value == "validator_instability"]
+        assert len(unstable_attempts) > 0
+
+    def test_model1_stuck_repeats_same_prediction(self):
+        """Test 26: Model 1 STUCK - repeats same value for disputed label.
+        
+        Model 1 keeps predicting Medial_OA=1 despite validator saying it should be 0.
+        """
+        stuck_pred = make_mock_prediction({"Medial_OA": 1, **{l: 0 for l in LABEL_COLUMNS if l != "Medial_OA"}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Medial_OA", predicted=1, corrected=0, reason="Generalized OA", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=stuck_pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-026",
+            report="Osteoarthritis of knee.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+        # Check that MODEL1_STUCK was detected
+        stuck_attempts = [a for a in result["attempts"] if a.failure_type.value == "model1_stuck"]
+        assert len(stuck_attempts) > 0
+
+    def test_validator_instability_on_multiple_labels(self):
+        """Test 27: Validator instability on multiple labels simultaneously.
+        
+        Reproduces case where validator flips on ACL, MCL, Medial_OA, Lateral_OA, PF_OA.
+        """
+        pred1 = make_mock_prediction({
+            "ACL": 1, "MCL": 1, "Medial_OA": 0, "Lateral_OA": 0, "PF_OA": 0,
+            **{l: 0 for l in LABEL_COLUMNS if l not in ["ACL", "MCL", "Medial_OA", "Lateral_OA", "PF_OA"]}
+        })
+        pred2 = make_mock_prediction({
+            "ACL": 0, "MCL": 0, "Medial_OA": 1, "Lateral_OA": 1, "PF_OA": 1,
+            **{l: 0 for l in LABEL_COLUMNS if l not in ["ACL", "MCL", "Medial_OA", "Lateral_OA", "PF_OA"]}
+        })
+        
+        # Validator flips on all 5 labels
+        val1 = make_mock_validation("FAIL", [
+            ValidationIssue(label="ACL", predicted=1, corrected=0, reason="", evidence=[]),
+            ValidationIssue(label="MCL", predicted=1, corrected=0, reason="", evidence=[]),
+            ValidationIssue(label="Medial_OA", predicted=0, corrected=1, reason="", evidence=[]),
+            ValidationIssue(label="Lateral_OA", predicted=0, corrected=1, reason="", evidence=[]),
+            ValidationIssue(label="PF_OA", predicted=0, corrected=1, reason="", evidence=[]),
+        ])
+        val2 = make_mock_validation("FAIL", [
+            ValidationIssue(label="ACL", predicted=0, corrected=1, reason="", evidence=[]),
+            ValidationIssue(label="MCL", predicted=0, corrected=1, reason="", evidence=[]),
+            ValidationIssue(label="Medial_OA", predicted=1, corrected=0, reason="", evidence=[]),
+            ValidationIssue(label="Lateral_OA", predicted=1, corrected=0, reason="", evidence=[]),
+            ValidationIssue(label="PF_OA", predicted=1, corrected=0, reason="", evidence=[]),
+        ])
+        
+        mock_infer = MagicMock(side_effect=[pred1, pred2])
+        mock_validate = MagicMock(side_effect=[val1, val2])
+        
+        result = run_report(
+            report_id="test-027",
+            report="Complex knee report with multiple findings.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+        # Check that VALIDATOR_INSTABILITY was detected
+        unstable_attempts = [a for a in result["attempts"] if a.failure_type.value == "validator_instability"]
+        assert len(unstable_attempts) > 0
+
+    def test_ambiguous_meniscal_tear_routes_to_needs_review(self):
+        """Test 28: Suspected/possible/R-O meniscal tear -> AMBIGUOUS -> needs_review.
+        
+        Per GOLD_ANALYSIS, suspected/possible/R-O tear is UNRESOLVED for meniscus.
+        """
+        pred = make_mock_prediction({"Lateral_Meniscus": 0, **{l: 0 for l in LABEL_COLUMNS if l != "Lateral_Meniscus"}})
+        ambiguous_validation = make_mock_validation("AMBIGUOUS", [
+            ValidationIssue(label="Lateral_Meniscus", predicted=0, corrected=None, reason="Suspected tear is UNRESOLVED per gold", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=ambiguous_validation)
+        
+        result = run_report(
+            report_id="test-028",
+            report="Suspicious of lateral meniscus tear, R/O tear.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+        assert "AMBIGUOUS" in result["review_reason"]
+        assert mock_infer.call_count == 1  # No retry
+
+    def test_generalized_oa_without_compartment_specification(self):
+        """Test 29: Generalized OA without compartment specification -> CONTEXTUAL.
+        
+        Per GOLD_ANALYSIS, generalized/tricompartmental OA without compartment
+        specification is CONTEXTUAL for Medial_OA, Lateral_OA, PF_OA.
+        """
+        pred = make_mock_prediction({
+            "Medial_OA": 1, "Lateral_OA": 1, "PF_OA": 1,
+            **{l: 0 for l in LABEL_COLUMNS if l not in ["Medial_OA", "Lateral_OA", "PF_OA"]}
+        })
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Medial_OA", predicted=1, corrected=0, reason="Generalized OA without medial specification is CONTEXTUAL", evidence=[]),
+            ValidationIssue(label="Lateral_OA", predicted=1, corrected=0, reason="Generalized OA without lateral specification is CONTEXTUAL", evidence=[]),
+            ValidationIssue(label="PF_OA", predicted=1, corrected=0, reason="Generalized OA without PF specification is CONTEXTUAL", evidence=[]),
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-029",
+            report="Tricompartmental osteoarthritis with spur formation.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        # Should eventually reach needs_review due to semantic disagreement
+        assert result["status"] == "needs_review"
+
+    def test_bone_marrow_edema_not_automatically_contusion(self):
+        """Test 30: Bone marrow edema alone does not automatically mean Contusion=1.
+        
+        Per GOLD_ANALYSIS, bone marrow edema without explicit contusion is SAFE_NEGATIVE.
+        """
+        pred = make_mock_prediction({"Contusion": 0, **{l: 0 for l in LABEL_COLUMNS if l != "Contusion"}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Contusion", predicted=0, corrected=1, reason="Bone marrow edema indicates contusion", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-030",
+            report="Mild bone marrow edema in medial tibial plateau.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        # Model 1 correctly predicted 0, validator incorrectly says 1
+        # This should be detected as validator error
+        assert result["status"] == "needs_review"
+
+    def test_acl_muciod_degeneration_not_tear(self):
+        """Test 31: ACL mucoid degeneration/cyst not automatically ACL tear.
+        
+        Per GOLD_ANALYSIS, increased signal without explicit tear is UNSAFE for ACL.
+        """
+        pred = make_mock_prediction({"ACL": 0, **{l: 0 for l in LABEL_COLUMNS if l != "ACL"}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="ACL", predicted=0, corrected=1, reason="Mucoid degeneration indicates tear", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-031",
+            report="ACL mucoid degeneration with subchondral bone cyst at tibial spine.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_mcl_grade1_sprain_intact_contour(self):
+        """Test 32: MCL grade 1 sprain with intact contour -> MCL=0 per gold.
+        
+        Per GOLD_ANALYSIS, periligamentous fluid/edema without explicit tear is UNSAFE.
+        """
+        pred = make_mock_prediction({"MCL": 0, **{l: 0 for l in LABEL_COLUMNS if l != "MCL"}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="MCL", predicted=0, corrected=1, reason="Grade 1 sprain indicates tear", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-032",
+            report="MCL contour intact with mild increased infiltration, in favor of grade 1 sprain.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_effusion_not_synovitis(self):
+        """Test 33: Effusion alone does not mean Synovitis=1.
+        
+        Per GOLD_ANALYSIS, effusion without explicit synovitis is SAFE_NEGATIVE for Synovitis.
+        """
+        pred = make_mock_prediction({"Effusion": 1, "Synovitis": 0, **{l: 0 for l in LABEL_COLUMNS if l not in ["Effusion", "Synovitis"]}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Synovitis", predicted=0, corrected=1, reason="Effusion indicates synovitis", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-033",
+            report="Joint effusion present.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_bakers_cyst_not_synovitis(self):
+        """Test 34: Baker's cyst does not mean Synovitis=1.
+        
+        Per GOLD_ANALYSIS, Baker's cyst is separate from synovitis.
+        """
+        pred = make_mock_prediction({"Bakers": 1, "Synovitis": 0, **{l: 0 for l in LABEL_COLUMNS if l not in ["Bakers", "Synovitis"]}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Synovitis", predicted=0, corrected=1, reason="Baker's cyst indicates synovitis", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-034",
+            report="Baker's cyst present.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_fracture_not_automatically_contusion(self):
+        """Test 35: Fracture does not automatically mean Contusion=1.
+        
+        Per GOLD_ANALYSIS, fracture and contusion are separate labels.
+        """
+        pred = make_mock_prediction({"Fracture": 1, "Contusion": 0, **{l: 0 for l in LABEL_COLUMNS if l not in ["Fracture", "Contusion"]}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Contusion", predicted=0, corrected=1, reason="Fracture with marrow edema indicates contusion", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-035",
+            report="Tibial fracture with marrow edema.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_historical_injury_not_current(self):
+        """Test 36: Historical/old injury does not mean current injury.
+        
+        Per GOLD_ANALYSIS, historical/postoperative findings are SAFE_NEGATIVE for current injury.
+        """
+        pred = make_mock_prediction({"MCL": 0, **{l: 0 for l in LABEL_COLUMNS if l != "MCL"}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="MCL", predicted=0, corrected=1, reason="Old MCL injury indicates current tear", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-036",
+            report="Prior healed traumatic injury to the medial collateral ligament proximal attachment.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_chondromalacia_not_automatically_oa(self):
+        """Test 37: Chondromalacia without compartment specification not automatically OA.
+        
+        Per GOLD_ANALYSIS, chondromalacia without compartment specification is SAFE_NEGATIVE for compartment OA.
+        """
+        pred = make_mock_prediction({"Medial_OA": 0, "Lateral_OA": 0, "PF_OA": 0, **{l: 0 for l in LABEL_COLUMNS if l not in ["Medial_OA", "Lateral_OA", "PF_OA"]}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Medial_OA", predicted=0, corrected=1, reason="Chondromalacia indicates OA", evidence=[]),
+            ValidationIssue(label="Lateral_OA", predicted=0, corrected=1, reason="Chondromalacia indicates OA", evidence=[]),
+            ValidationIssue(label="PF_OA", predicted=0, corrected=1, reason="Chondromalacia indicates OA", evidence=[]),
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-037",
+            report="Chondromalacia patella grade 2.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_meniscal_grade2_signal_not_tear(self):
+        """Test 38: Meniscal grade 2 signal not automatically definite tear.
+        
+        Per GOLD_ANALYSIS, grade 2 intrasubstance signal without surface extension is SAFE_NEGATIVE.
+        """
+        pred = make_mock_prediction({"Medial_Meniscus": 0, **{l: 0 for l in LABEL_COLUMNS if l != "Medial_Meniscus"}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Medial_Meniscus", predicted=0, corrected=1, reason="Grade 2 signal indicates tear", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-038",
+            report="Grade 2 intrasubstance signal in posterior horn of medial meniscus without surface extension.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_acl_insertion_cyst_not_tear(self):
+        """Test 39: ACL insertion cyst/edema not automatically ACL tear.
+        
+        Per GOLD_ANALYSIS, cyst/edema at ACL tibial attachment is UNSAFE for ACL tear.
+        """
+        pred = make_mock_prediction({"ACL": 0, **{l: 0 for l in LABEL_COLUMNS if l != "ACL"}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="ACL", predicted=0, corrected=1, reason="ACL insertion cyst indicates tear", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-039",
+            report="Cystic change at ACL tibial attachment.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_mcl_periligamentous_fluid_not_tear(self):
+        """Test 40: MCL periligamentous fluid not automatically MCL tear.
+        
+        Per GOLD_ANALYSIS, periligamentous fluid without explicit tear is UNSAFE for MCL.
+        """
+        pred = make_mock_prediction({"MCL": 0, **{l: 0 for l in LABEL_COLUMNS if l != "MCL"}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="MCL", predicted=0, corrected=1, reason="Periligamentous fluid indicates tear", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-040",
+            report="Mild fluid around MCL.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

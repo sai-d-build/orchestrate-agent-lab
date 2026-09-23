@@ -9,7 +9,7 @@ class FailureType(Enum):
     STRUCTURAL = "structural"           # JSON parse error, schema validation error
     SEMANTIC = "semantic"               # Model 2 identifies genuine binary disagreement
     TRANSIENT = "transient"             # API error, rate limit, None content
-    MODEL1_STUCK = "model1_stuck"       # Model 1 repeats same value for disputed label
+    MODEL1_STUCK = "model1_stuck"       # Model 1 repeats same 12-label vector
     VALIDATOR_INSTABILITY = "validator_instability"  # Validator corrections flip across attempts
     POLICY_AMBIGUITY = "policy_ambiguity"  # Validator returns AMBIGUOUS
 
@@ -84,6 +84,50 @@ def _classify_failure(validation: ValidationResult, error: Exception | None = No
     return FailureType.STRUCTURAL
 
 
+def _detect_validator_oscillation(validator_history: dict[str, list[int]]) -> list[str]:
+    """
+    Detect deterministic validator oscillation patterns.
+    
+    Returns list of labels where validator corrections oscillate:
+    - 0 → 1 → 0
+    - 1 → 0 → 1
+    - Any pattern where corrections return to a previous state
+    - Immediate flip on second attempt (0→1 or 1→0 where first correction was opposite)
+    """
+    oscillating = []
+    for label, history in validator_history.items():
+        if len(history) >= 3:
+            # Check for 0→1→0 or 1→0→1 pattern
+            if history[-3] == history[-1] and history[-3] != history[-2]:
+                oscillating.append(label)
+            # Check for any return to a previous state (more general)
+            elif len(set(history)) > 1 and history[-1] in history[:-1]:
+                oscillating.append(label)
+        elif len(history) == 2:
+            # Immediate flip on second attempt: first correction was X, second is opposite
+            # This indicates the validator is changing its mind based on Model 1's prediction
+            if history[0] != history[1]:
+                oscillating.append(label)
+    return oscillating
+
+
+def _detect_model1_stuck(model1_history: dict[str, list[int]], disputed_labels: set[str], min_attempts: int = 2) -> list[str]:
+    """
+    Detect Model 1 STUCK by tracking complete 12-label prediction vectors.
+    
+    Returns list of labels where Model 1 repeats the same value for a disputed label
+    across min_attempts consecutive attempts.
+    """
+    stuck = []
+    for label in disputed_labels:
+        history = model1_history[label]
+        if len(history) >= min_attempts:
+            # Check if last min_attempts values are all the same
+            if len(set(history[-min_attempts:])) == 1:
+                stuck.append(label)
+    return stuck
+
+
 def run_report(
     report_id: str,
     report: str,
@@ -111,6 +155,9 @@ def run_report(
     model1_history = {label: [] for label in LABEL_KEYS}
     validator_history = {label: [] for label in LABEL_KEYS}
     disputed_labels = set()
+    
+    # Track complete 12-label prediction vectors for MODEL1_STUCK detection
+    model1_vector_history = []
 
     for number in range(1, max_attempts + 1):
         start = perf_counter()
@@ -154,21 +201,26 @@ def run_report(
         # Track Model 1 predictions per label
         for label, val in prediction.predictions.items():
             model1_history[label].append(val.value)
+        
+        # Track complete 12-label prediction vector
+        pred_vector = tuple(prediction.predictions[label].value for label in LABEL_KEYS)
+        model1_vector_history.append(pred_vector)
 
-        # Detect Model 1 STUCK (same value for disputed label across attempts)
-        if number > 1 and disputed_labels:
-            stuck_labels = [
-                label for label in disputed_labels
-                if len(set(model1_history[label])) == 1
-            ]
-            if stuck_labels:
-                failure_type = FailureType.MODEL1_STUCK
+        # Detect Model 1 STUCK (same 12-label vector across attempts)
+        stuck_labels = []
+        if number >= 2:
+            # Check if complete prediction vector is identical to previous
+            if model1_vector_history[-1] == model1_vector_history[-2]:
+                # Find which disputed labels are stuck
+                stuck_labels = [
+                    label for label in disputed_labels
+                    if model1_history[label][-1] == model1_history[label][-2]
+                ]
+                if stuck_labels:
+                    failure_type = FailureType.MODEL1_STUCK
 
-        # Detect Validator Instability (correction flips)
-        unstable_labels = [
-            label for label, history in validator_history.items()
-            if len(set(history)) > 1
-        ]
+        # Detect Validator Instability (correction flips) - deterministic oscillation
+        unstable_labels = _detect_validator_oscillation(validator_history)
         if unstable_labels:
             failure_type = FailureType.VALIDATOR_INSTABILITY
 

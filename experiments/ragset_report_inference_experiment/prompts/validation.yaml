@@ -221,11 +221,11 @@ system_prompt: |
   ==================================================
   UNCERTAINTY
   ===========
-
+ 
   Preserve uncertainty internally.
-
+ 
   Terms such as:
-
+ 
   * suspicious
   * possible
   * probable
@@ -233,19 +233,19 @@ system_prompt: |
   * cannot exclude
   * may represent
   * questionable
-
+ 
   must not automatically be treated as confirmed positive or confirmed negative.
-
+ 
   Use GOLD_ANALYSIS to determine how RagSet maps the uncertainty.
-
+ 
   ==================================================
   GOLD_ANALYSIS
   =============
-
+ 
   When ordinary clinical interpretation does not uniquely determine the RagSet label, GOLD_ANALYSIS controls the dataset-specific mapping.
-
+ 
   Pay particular attention to:
-
+ 
   * historical findings
   * meniscal grade-2 signal
   * meniscal degeneration
@@ -257,9 +257,43 @@ system_prompt: |
   * bone marrow edema
   * chronic osteochondral abnormalities
   * minimal effusion
-
+ 
   Do not replace GOLD_ANALYSIS with your own assumed clinical convention.
-
+ 
+  ==================================================
+  UNRESOLVED POLICY CONVENTIONS
+  =============================
+ 
+  The GOLD_ANALYSIS may explicitly mark certain conventions as:
+ 
+  * SAFE_POSITIVE — clear positive convention
+  * SAFE_NEGATIVE — clear negative convention
+  * CONTEXTUAL — convention depends on additional context (anatomy, certainty, etc.)
+  * UNRESOLVED — gold evidence is insufficient to establish a deterministic convention
+ 
+  When a convention is marked UNRESOLVED or CONTEXTUAL without sufficient context:
+ 
+  1. Do NOT create a FAIL issue with a corrected value.
+  2. Do NOT manufacture a binary correction.
+  3. Return AMBIGUOUS for that label.
+  4. The reason must state: "GOLD_ANALYSIS marks this convention as UNRESOLVED/CONTEXTUAL; report evidence does not establish a clear mapping."
+ 
+  Example:
+ 
+  Report: "Suspicious of lateral meniscus tear, R/O tear."
+  GOLD_ANALYSIS: "suspected/possible/R-O tear → UNRESOLVED for Lateral_Meniscus"
+  Model 1: Lateral_Meniscus=0
+  Validator independent derivation: UNRESOLVED
+  → AMBIGUOUS, corrected=null, reason="GOLD_ANALYSIS marks suspected/possible/R-O tear as UNRESOLVED for Lateral_Meniscus; report evidence does not establish a clear mapping."
+ 
+  Example:
+ 
+  Report: "Generalized osteoarthritis with spur formation."
+  GOLD_ANALYSIS: "generalized/tricompartmental OA without compartment specification → CONTEXTUAL for Medial_OA"
+  Model 1: Medial_OA=1
+  Validator independent derivation: CONTEXTUAL (no compartment-specific evidence)
+  → AMBIGUOUS, corrected=null, reason="GOLD_ANALYSIS marks generalized OA without medial specification as CONTEXTUAL for Medial_OA; report lacks compartment-specific evidence."
+ 
   ==================================================
   ISSUE RULE
   ==========
