@@ -19,8 +19,8 @@ models:
     - nvidia-ragset-validator-usf
     - nvidia-ragset-validator
   judge_profiles:
-    - nvidia-ragset-judge
     - nvidia-ragset-judge-usf
+    - nvidia-ragset-judge
   gold_analysis_profile: nvidia-ragset-gold-analysis-usf
   temperature: 0
 

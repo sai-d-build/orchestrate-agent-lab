@@ -199,6 +199,7 @@ class InferenceModel:
         self.provider = provider or _detect_provider(model)
         self.reasoning = reasoning
         self.client = _create_client(self.provider, api_key)
+        self.last_token_usage = {"input_tokens": 0, "output_tokens": 0}
 
     def run(
         self,
@@ -242,6 +243,13 @@ class InferenceModel:
                 response = self.client.chat.completions.create(**kwargs)
                 # Capture actual model used (OpenRouter may route to different model)
                 self.last_actual_model = getattr(response, 'model', self.model)
+                # Capture token usage
+                usage = getattr(response, 'usage', None)
+                if usage:
+                    self.last_token_usage = {
+                        "input_tokens": getattr(usage, 'prompt_tokens', 0),
+                        "output_tokens": getattr(usage, 'completion_tokens', 0),
+                    }
                 text = response.choices[0].message.content
                 if text is None:
                     raise RuntimeError("Model returned None content")
@@ -315,6 +323,7 @@ class ValidatorModel:
         self.provider = provider or _detect_provider(model)
         self.reasoning = reasoning
         self.client = _create_client(self.provider, api_key)
+        self.last_token_usage = {"input_tokens": 0, "output_tokens": 0}
 
     def run(self, system: str, user: str) -> ValidationResult:
         extra_body = _build_extra_body(self.provider, self.reasoning)
@@ -342,6 +351,13 @@ class ValidatorModel:
                 response = self.client.chat.completions.create(**kwargs)
                 # Capture actual model used (OpenRouter may route to different model)
                 self.last_actual_model = getattr(response, 'model', self.model)
+                # Capture token usage
+                usage = getattr(response, 'usage', None)
+                if usage:
+                    self.last_token_usage = {
+                        "input_tokens": getattr(usage, 'prompt_tokens', 0),
+                        "output_tokens": getattr(usage, 'completion_tokens', 0),
+                    }
                 text = response.choices[0].message.content
                 if text is None:
                     raise RuntimeError("Model returned None content")
@@ -410,6 +426,7 @@ class CriticModel:
         self.provider = provider or _detect_provider(model)
         self.reasoning = reasoning
         self.client = _create_client(self.provider, api_key)
+        self.last_token_usage = {"input_tokens": 0, "output_tokens": 0}
 
     def run(self, system: str, user: str) -> CritiqueResult:
         extra_body = _build_extra_body(self.provider, self.reasoning)
@@ -434,6 +451,13 @@ class CriticModel:
             try:
                 response = self.client.chat.completions.create(**kwargs)
                 self.last_actual_model = getattr(response, 'model', self.model)
+                # Capture token usage
+                usage = getattr(response, 'usage', None)
+                if usage:
+                    self.last_token_usage = {
+                        "input_tokens": getattr(usage, 'prompt_tokens', 0),
+                        "output_tokens": getattr(usage, 'completion_tokens', 0),
+                    }
                 text = response.choices[0].message.content
                 if text is None:
                     raise RuntimeError("Model returned None content")
@@ -499,6 +523,7 @@ class JudgeModel:
         self.provider = provider or _detect_provider(model)
         self.reasoning = reasoning
         self.client = _create_client(self.provider, api_key)
+        self.last_token_usage = {"input_tokens": 0, "output_tokens": 0}
 
     def run(self, system: str, user: str) -> JudgeResult:
         extra_body = _build_extra_body(self.provider, self.reasoning)
@@ -523,6 +548,13 @@ class JudgeModel:
             try:
                 response = self.client.chat.completions.create(**kwargs)
                 self.last_actual_model = getattr(response, 'model', self.model)
+                # Capture token usage
+                usage = getattr(response, 'usage', None)
+                if usage:
+                    self.last_token_usage = {
+                        "input_tokens": getattr(usage, 'prompt_tokens', 0),
+                        "output_tokens": getattr(usage, 'completion_tokens', 0),
+                    }
                 text = response.choices[0].message.content
                 if text is None:
                     raise RuntimeError("Model returned None content")
