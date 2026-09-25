@@ -149,6 +149,7 @@ def _validate_critic_output(
     Returns:
         None if all checks pass
         dict with safety_gate_failure details if any check fails
+        Includes 'actionability': 'BLOCKED' | 'USABLE' for Judge workflow decision
     """
     # 1. Validate Model 2 critique schema - already validated by Pydantic
     
@@ -160,6 +161,17 @@ def _validate_critic_output(
                 "check": "label_validation",
                 "error": f"Invalid label '{issue.label}' in critique issue. Must be one of: {LABEL_KEYS}",
                 "issue": issue.model_dump(),
+                "actionability": "BLOCKED",
+            }
+        
+        # NEW: Validate model1_value matches actual Model 1 prediction
+        actual_model1_val = model1_prediction.predictions[issue.label].value
+        if issue.model1_value != actual_model1_val:
+            return {
+                "check": "model1_value_consistency",
+                "error": f"Critic model1_value ({issue.model1_value}) for label '{issue.label}' does not match actual Model 1 prediction ({actual_model1_val})",
+                "issue": issue.model_dump(),
+                "actionability": "BLOCKED",
             }
         
         # 2. CLEAR_POLICY_CONFLICT and CLEAR_REPORT_CONFLICT: proposed_value must be 0 or 1
@@ -169,12 +181,14 @@ def _validate_critic_output(
                     "check": "proposed_value_required",
                     "error": f"CLEAR_* issue for label '{issue.label}' must have proposed_value 0 or 1, got None",
                     "issue": issue.model_dump(),
+                    "actionability": "BLOCKED",
                 }
             if issue.proposed_value not in (0, 1):
                 return {
                     "check": "proposed_value_binary",
                     "error": f"CLEAR_* issue for label '{issue.label}' proposed_value must be 0 or 1, got {issue.proposed_value}",
                     "issue": issue.model_dump(),
+                    "actionability": "BLOCKED",
                 }
             # 4. For CLEAR_*: proposed_value must differ from model1_value
             model1_val = model1_prediction.predictions[issue.label].value
@@ -183,6 +197,7 @@ def _validate_critic_output(
                     "check": "proposed_value_differs",
                     "error": f"CLEAR_* issue for label '{issue.label}' proposed_value ({issue.proposed_value}) must differ from model1_value ({model1_val})",
                     "issue": issue.model_dump(),
+                    "actionability": "BLOCKED",
                 }
         
         # 3. For UNRESOLVED_POLICY, REPORT_AMBIGUITY, INSUFFICIENT_EVIDENCE: proposed_value must be null
@@ -192,6 +207,7 @@ def _validate_critic_output(
                     "check": "proposed_value_null_required",
                     "error": f"{issue.issue_type.value} issue for label '{issue.label}' must have proposed_value=null, got {issue.proposed_value}",
                     "issue": issue.model_dump(),
+                    "actionability": "BLOCKED",
                 }
         
         # 6-7. If Model 2 supplies evidence, verify verbatim in ORIGINAL_REPORT
@@ -201,6 +217,7 @@ def _validate_critic_output(
                     "check": "evidence_verbatim",
                     "error": f"Evidence for label '{issue.label}' not found verbatim in ORIGINAL_REPORT: '{issue.evidence[:100]}...'",
                     "issue": issue.model_dump(),
+                    "actionability": "BLOCKED",
                 }
     
     # 8. Validate actionable: true iff at least one CLEAR_* issue exists
@@ -217,6 +234,22 @@ def _validate_critic_output(
                 i.label for i in critique.issues
                 if i.issue_type in (CritiqueIssueType.CLEAR_POLICY_CONFLICT, CritiqueIssueType.CLEAR_REPORT_CONFLICT)
             ],
+            "actionability": "BLOCKED",
+        }
+    
+    # NEW: Validate affected_labels matches CLEAR_* issue labels exactly
+    clear_issue_labels = {
+        i.label for i in critique.issues
+        if i.issue_type in (CritiqueIssueType.CLEAR_POLICY_CONFLICT, CritiqueIssueType.CLEAR_REPORT_CONFLICT)
+    }
+    affected_labels_set = set(critique.affected_labels)
+    if clear_issue_labels != affected_labels_set:
+        return {
+            "check": "affected_labels_consistency",
+            "error": f"affected_labels {sorted(affected_labels_set)} does not match CLEAR_* issue labels {sorted(clear_issue_labels)}",
+            "affected_labels": sorted(affected_labels_set),
+            "clear_issue_labels": sorted(clear_issue_labels),
+            "actionability": "BLOCKED",
         }
     
     # 9. Validate status consistency
@@ -239,6 +272,7 @@ def _validate_critic_output(
             "check": "status_consistency",
             "error": f"status={critique.status.value} but expected={expected_status.value} (clear_issues={clear_issues_exist}, unresolved_ambiguity={unresolved_ambiguity_issues})",
             "issue_types": [i.issue_type.value for i in critique.issues],
+            "actionability": "BLOCKED",
         }
     
     return None

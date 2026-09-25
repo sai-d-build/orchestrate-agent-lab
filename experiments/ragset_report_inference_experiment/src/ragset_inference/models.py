@@ -543,6 +543,7 @@ class JudgeModel:
         max_retries = 3
         base_delay = 2.0
         last_error = None
+        previous_text = None
 
         for attempt in range(max_retries):
             try:
@@ -564,6 +565,24 @@ class JudgeModel:
                 return JudgeResult.model_validate(data)
             except ValidationError as e:
                 last_error = e
+                previous_text = text if 'text' in locals() else None
+                # Check if it's a rationale length error - if so, retry with feedback
+                error_str = str(e)
+                if "rationale" in error_str and "500" in error_str and "String should have at most 500 characters" in error_str:
+                    if attempt < max_retries - 1:
+                        # Build feedback for retry
+                        feedback = (
+                            f"VALIDATION ERROR: rationale field exceeds 500 characters. "
+                            f"Your previous rationale was {len(data.get('rationale', '')) if data else 'unknown'} characters. "
+                            f"Maximum allowed is 500 characters. "
+                            f"Be extremely concise. Explain ONLY the workflow decision in ≤500 chars. "
+                            f"Do NOT include clinical evidence, chain-of-thought, or alternative actions."
+                        )
+                        # Add feedback to user prompt for retry
+                        kwargs["messages"][1]["content"] = user + "\n\n" + feedback
+                        delay = _get_retry_delay(e, attempt, base_delay)
+                        time.sleep(delay)
+                        continue
                 if attempt < max_retries - 1:
                     delay = _get_retry_delay(e, attempt, base_delay)
                     time.sleep(delay)

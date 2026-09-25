@@ -36,11 +36,12 @@ labels:
     gold_positive: 9
     gold_negative: 49
     conventions:
-      - pattern: "explicit MCL tear/rupture/sprain/partial tear/grade 2"
+      - pattern: "explicit MCL tear/rupture/sprain/partial tear/grade 1 / grade I / grade 2 / grade II / grade 3 / grade III"
         status: SAFE_POSITIVE
         supporting_count: 9
         contradicting_count: 0
         example_uids: ["12505035424093604269515328931488770819", "12606657226568558340797193167488111973"]
+        rationale: "Explicit current MCL sprain/injury/tear is positive regardless of grade (grade I, II, III all positive)"
       - pattern: "MCL intact/normal/within normal limits/sin alteraciones"
         status: SAFE_NEGATIVE
         supporting_count: 0
@@ -52,6 +53,16 @@ labels:
       - pattern: "suspect/possible MCL injury"
         status: UNRESOLVED
         rationale: "Only 1 positive example with 'suspect grade 2'; no negative counterexamples"
+      - pattern: "MCL distension / MCL thickening / periligamentous edema / periligamentous fluid / MCL fluid"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 6
+        rationale: "MCL distension, thickening, periligamentous edema/fluid without explicit injury/sprain/tear is NOT automatically positive"
+      - pattern: "old / ancient / previous / remote / healed / ancient / sequela / prior / ancienne / ancien MCL injury"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 4
+        rationale: "Historical/old/healed MCL injury should not be treated as current positive unless current pathology is documented"
 
   Medial_Meniscus:
     gold_positive: 26
@@ -73,6 +84,11 @@ labels:
         status: SAFE_NEGATIVE
         supporting_count: 0
         contradicting_count: 4
+      - pattern: "grade 2a / 2a / 2b / 2B / grade IIa / grade IIb / intrasubstance signal / intrameniscal signal / mucoid degeneration / myxoid degeneration / meniscopathy / degenerative signal / partial intrasubstance injury"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 8
+        rationale: "Grade 2a/2b, intrasubstance signal, mucoid/myxoid degeneration, meniscopathy, and partial intrasubstance injury without explicit surface-reaching tear are NOT confirmed tears"
       - pattern: "suspected/possible/R-O tear"
         status: UNRESOLVED
         rationale: "Insufficient gold examples with uncertainty language"
@@ -100,6 +116,11 @@ labels:
         status: SAFE_NEGATIVE
         supporting_count: 0
         contradicting_count: 4
+      - pattern: "grade 2a / 2A / 2b / 2B / grade IIa / grade IIb / intrasubstance signal / intrameniscal signal / mucoid degeneration / myxoid degeneration / meniscopathy / degenerative signal / partial intrasubstance injury"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 8
+        rationale: "Grade 2a/2b, intrasubstance signal, mucoid/myxoid degeneration, meniscopathy, and partial intrasubstance injury without explicit surface-reaching tear are NOT confirmed tears"
       - pattern: "suspected/possible/R-O tear"
         status: UNRESOLVED
         rationale: "Insufficient gold examples with uncertainty language"
@@ -163,6 +184,11 @@ labels:
         status: SAFE_POSITIVE
         supporting_count: 3
         contradicting_count: 0
+      - pattern: "patellar cartilage / trochlear cartilage / trochlea / patellofemoral compartment / patellofemoral joint"
+        status: SAFE_POSITIVE
+        supporting_count: 5
+        contradicting_count: 0
+        rationale: "Explicit patellofemoral anatomy (patella, trochlea, patellofemoral compartment) supports PF_OA"
       - pattern: "generalized chondromalacia without PF specification"
         status: CONTEXTUAL
         supporting_count: 1
@@ -171,6 +197,11 @@ labels:
         status: SAFE_NEGATIVE
         supporting_count: 0
         contradicting_count: 2
+      - pattern: "femoral cartilage / tibial cartilage / femoral chondromalacia / tibial chondromalacia / femoral chondropathy / tibial chondropathy / femoral/tibial chondrosis"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 4
+        rationale: "Generic femoral/tibial cartilage findings do NOT establish PF_OA. PF_OA requires explicit patellofemoral anatomy (patella, trochlea, patellofemoral compartment)."
 
   Effusion:
     gold_positive: 35
@@ -213,6 +244,11 @@ labels:
         status: SAFE_POSITIVE
         supporting_count: 12
         contradicting_count: 0
+      - pattern: "parameniscal cyst / meniscal cyst / intrameniscal cyst / ganglion cyst / posterior synovial cyst / synovial cyst / prepatellar cyst / prepatellar bursa / other periarticular cysts / generic fluid collection / posterior PCL ganglion cyst"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 12
+        rationale: "Only explicit Baker's/Becker/popliteal cyst terminology triggers Bakers=1. Parameniscal cysts, meniscal cysts, ganglion cysts, synovial cysts, and other periarticular cysts are NOT Baker's cysts."
       - pattern: "other cysts (ganglion, suprapatellar, infrapatellar bursitis)"
         status: SAFE_NEGATIVE
         supporting_count: 0
@@ -222,7 +258,7 @@ labels:
     gold_positive: 19
     gold_negative: 39
     conventions:
-      - pattern: "explicit bone contusion/bone bruise/bone infarct"
+      - pattern: "explicit bone contusion/bone bruise/osseous contusion"
         status: SAFE_POSITIVE
         supporting_count: 19
         contradicting_count: 0
@@ -233,6 +269,11 @@ labels:
       - pattern: "chronic osteochondral/subchondral edema"
         status: SAFE_NEGATIVE
         rationale: "Chronic/degenerative edema not automatically acute contusion"
+      - pattern: "bone infarct / osteonecrosis / infarction / chronic marrow change"
+        status: SAFE_NEGATIVE
+        supporting_count: 0
+        contradicting_count: 6
+        rationale: "Bone infarct/osteonecrosis/infarction/chronic marrow change is NOT a bone contusion. Do NOT convert to contusion unless explicit bone contusion/bruise is documented."
 
   Fracture:
     gold_positive: 18
@@ -297,3 +338,141 @@ explicit_evidence_override:
   - "Example: 'ACL sprain' → ACL=1, do not change to 0 because of 'increased signal'"
   - "Example: 'Baker's cyst' → Bakers=1, do not change to 0 because of 'popliteal fluid'"
   - "Example: 'ACL intact' → ACL=0, do not change to 1 because another ligament is abnormal"
+  - "Example: 'partial ACL tear' in impression → ACL=1, do not override with weaker findings"
+  - "Example: 'tear of lateral meniscus' in impression → Lateral_Meniscus=1, do not override with weaker findings"
+  - "Example: 'grade I MCL sprain' → MCL=1, do not change to 0 because of 'MCL fluid'"
+  - "Example: 'parameniscal cyst' → Bakers=0, do not change to 1 because of 'cyst'"
+  - "Example: 'grade 2a meniscal injury' → meniscus=0, do not change to 1 because of 'injury'"
+  - "Example: 'bone infarct' → Contusion=0, do not change to 1 because of 'marrow edema'"
+  - "Example: 'osteochondral lesion' → OA=0, do not change to 1 because of 'lesion'"
+  - "Example: 'parameniscal cyst' → Bakers=0, do not change to 1 because of 'cyst'"
+  - "Example: 'posterior synovial cyst' → Bakers=0, do not change to 1 because of 'cyst'"
+  - "Example: 'femoral chondromalacia' → PF_OA=0, do not change to 1 because of 'chondromalacia'"
+  - "Example: 'patellar chondromalacia' → PF_OA=1, do not change to 0 because of 'femoral chondromalacia'"
+
+# Osteochondral lesion rule
+osteochondral_lesion_rule:
+  - "Osteochondral lesion/defect/injury alone does NOT establish OA"
+  - "Focal cartilage defect alone does NOT establish OA"
+  - "Osteochondral lesion of the lateral tibial plateau does NOT automatically mean Lateral_OA=1"
+  - "Osteochondral lesion of the patella does NOT automatically mean PF_OA=1"
+  - "Assign OA only when the report explicitly establishes OA/chondrosis/chondropathy/chondromalacia according to the canonical policy"
+  - "Osteochondral lesion alone also does NOT automatically establish fracture"
+
+# Compartment scope rule
+compartment_scope_rule:
+  - "Do not spread a focal lesion across compartments"
+  - "Use the actual anatomical compartment stated in the report"
+  - "Example: osteochondral lesion of lateral tibial plateau does NOT by itself justify Lateral_OA=1"
+  - "Generalized/tricompartmental OA must follow the existing canonical gold convention. Do not invent a new mapping."
+
+# Impression evidence rule
+impression_evidence_rule:
+  - "The entire ORIGINAL_REPORT must be considered, including findings, impression, conclusion, summary, final diagnostic statements"
+  - "If the impression/conclusion explicitly diagnoses a target pathology, Model 1 MUST use that evidence when determining the label"
+  - "If findings contain weak/ambiguous ACL signal but impression says 'partial ACL tear' → ACL = 1"
+  - "If findings contain weaker lateral meniscus signal but impression says 'tear of lateral meniscus' → Lateral_Meniscus = 1"
+  - "The evidence field should preferably quote the strongest explicit supporting phrase, especially the impression/conclusion"
+  - "Do NOT let an earlier weak phrase override an explicit final diagnosis"
+
+# Label-centric validation rule
+label_centric_validation_rule:
+  - "Model 2 validates whether Model 1's LABEL VALUE is supported by the ORIGINAL_REPORT and canonical policy"
+  - "Model 2 must search the ENTIRE report before proposing a correction"
+  - "If any valid explicit report statement supports the Model 1 label, classify it as SUPPORTED even if Model 1's selected evidence span was weak or incomplete"
+  - "Evidence-selection weakness alone is NOT a clinical label error"
+  - "If the report supports the predicted value elsewhere, classify it as SUPPORTED"
+  - "Evidence quality alone is NOT a reason to request a retry"
+
+# Meniscus grade rule
+meniscus_grade_rule:
+  - "Do not criticize Medial_Meniscus=0 or Lateral_Meniscus=0 merely because the report contains: grade II degeneration, grade II/2b intrasubstance injury, meniscopathy, myxoid/mucoid degeneration, grade III degeneration"
+  - "These do not automatically establish a tear"
+  - "If grade III degeneration + extrusion occurs without an explicit tear, follow the canonical gold policy. If policy is unresolved, classify as UNRESOLVED_POLICY, not a CLEAR correction"
+
+# MCL grade rule
+mcl_grade_rule:
+  - "An explicit current MCL sprain/injury is positive regardless of grade"
+  - "grade I MCL sprain → MCL=1"
+  - "grade II MCL sprain → MCL=1"
+  - "grade III MCL injury/sprain → MCL=1"
+  - "Do NOT propose MCL=0 merely because the sprain is grade I or II"
+  - "MCL distension/thickening/adjacent edema without explicit injury/sprain/tear is not automatically positive"
+  - "Historical/old/healed MCL injury should not be treated as a current positive unless current pathology is documented"
+
+# Contusion rule
+contusion_rule:
+  - "Do not propose Contusion=1 from: bone infarct, marrow edema alone, subchondral edema alone, reactive marrow change"
+  - "unless the report separately provides explicit bone contusion/bruise evidence"
+
+# Osteochondral lesion rule
+osteochondral_lesion_rule:
+  - "Do not propose OA solely because the report contains: osteochondral lesion, osteochondral defect, focal cartilage lesion, osteochondral injury"
+  - "For example: osteochondral lesion of lateral tibial plateau does NOT deterministically establish Lateral_OA=1"
+  - "If there is no explicit OA/chondrosis/chondropathy/chondromalacia mapping under policy, classify as unresolved rather than CLEAR_POLICY_CONFLICT"
+
+# Retry threshold rule
+retry_threshold_rule:
+  - "Only generate a CLEAR correction when ALL are true:"
+  - "1. The Model 1 label is actually wrong"
+  - "2. ORIGINAL_REPORT provides deterministic evidence"
+  - "3. CANONICAL_POLICY provides a deterministic mapping"
+  - "4. The proposed value differs from Model 1"
+  - "5. The issue is not merely evidence-selection quality"
+  - "6. The issue is not unresolved/suspected/ambiguous language"
+  - "Otherwise use: SUPPORTED, UNRESOLVED_POLICY, REPORT_AMBIGUITY as appropriate"
+  - "Do NOT manufacture a correction simply because another interpretation is possible"
+
+# Baker's cyst rule
+bakers_cyst_rule:
+  - "Bakers = 1 ONLY when the report explicitly identifies a Baker/Becker/popliteal cyst"
+  - "The following MUST NOT automatically become Bakers: parameniscal cyst, meniscal cyst, intrameniscal cyst, ganglion cyst, posterior synovial cyst, synovial cyst, prepatellar cyst/bursa, other periarticular cysts, generic fluid collection"
+  - "Only explicit Baker/Becker/popliteal cyst terminology should trigger Bakers=1"
+
+# PF OA anatomical scope rule
+pf_oa_anatomical_scope_rule:
+  - "PF_OA must be supported by explicit patellofemoral anatomy: patella/patellar cartilage, trochlea/trochlear cartilage, patellofemoral compartment, explicit patellofemoral OA/chondrosis/chondropathy/chondromalacia"
+  - "Generic femoral cartilage, tibial cartilage, femoral/tibial chondromalacia, femoral/tibial chondropathy must NOT automatically become PF_OA"
+  - "If patellar cartilage is explicitly normal and the only abnormal cartilage is generic femoral/tibial cartilage, do not invent PF_OA"
+  - "Do not spread a focal tibiofemoral lesion into PF_OA"
+  - "Do not spread a PF lesion into medial/lateral tibiofemoral OA"
+
+# Uncertainty must not create retry oscillation
+uncertainty_no_retry_rule:
+  - "For: probable, possible, suspected, may represent, cannot exclude, rule out, R/O"
+  - "Do not force a positive label unless the canonical policy explicitly says that terminology is sufficient"
+  - "If policy/report conflict remains genuinely unresolved: → AMBIGUOUS"
+  - "Do NOT create repeated Model1 ↔ Model2 oscillation just because Model2 prefers a different interpretation"
+  - "No retry should occur for: evidence-quality disagreements, unresolved clinical ambiguity, unsupported Model2 preference, alternative interpretation without deterministic policy conflict"
+  - "Retry only when there is a clear deterministic policy/report conflict"
+
+# Model 2 label-centric validation
+model2_label_centric_validation:
+  - "Model 2 validates whether Model 1's LABEL VALUE is supported by the ORIGINAL_REPORT and canonical policy"
+  - "Model 2 must search the ENTIRE report before proposing a correction"
+  - "If any valid explicit report statement supports the Model 1 label, classify it as SUPPORTED even if Model 1's selected evidence span was weak or incomplete"
+  - "Evidence-selection weakness alone is NOT a clinical label error"
+  - "If the report supports the predicted value elsewhere, classify it as SUPPORTED"
+  - "Evidence quality alone is NOT a reason to request a retry"
+
+# Model 3 routing priority
+model3_routing_priority:
+  - "1. SYSTEM/INTEGRITY FAILURE → appropriate stop handling"
+  - "2. MAX ATTEMPTS → NEEDS_REVIEW"
+  - "3. OSCILLATION → NEEDS_REVIEW"
+  - "4. MODEL1_STUCK → NEEDS_REVIEW"
+  - "5. CLEAR deterministic policy/report conflict → RETRY_MODEL1"
+  - "6. UNRESOLVED_POLICY → AMBIGUOUS"
+  - "7. REPORT_AMBIGUITY → AMBIGUOUS"
+  - "8. Unsupported Model 2 correction → do NOT retry"
+  - "9. Supported prediction with only evidence-quality criticism → PASS"
+  - "10. No actionable issue → PASS"
+
+# Critical Model 3 rules
+model3_critical_rules:
+  - "A suspected/possible/R-O tear with unresolved policy must NOT trigger repeated Model 1 retries"
+  - "A Model 2 critique that only says Model 1 used weak/incomplete evidence must NOT trigger a retry if the predicted label is supported elsewhere in the ORIGINAL_REPORT"
+  - "Model 3 must never generate or modify clinical labels"
+  - "If Model 2 proposes a correction that is not supported by the entire ORIGINAL_REPORT + canonical policy: → do not retry"
+  - "If Model 1 is clinically supported but evidence extraction is imperfect: → do not retry solely for evidence quality"
+  - "If genuine policy ambiguity remains: → AMBIGUOUS"

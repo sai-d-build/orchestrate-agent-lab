@@ -128,7 +128,7 @@ models:
   # Judge model (Model 3) - Nemotron 3 Super 120B
   nvidia-ragset-judge:
     provider: nvidia
-    model: nvidia/nemotron-3-super-120b-a12b
+    model: nvidia/nemotron-3-ultra-550b-a55b
     api_key_env: NVIDIA_API_KEY
     purpose: ragset_workflow_judge
     capabilities:
@@ -146,7 +146,7 @@ models:
 
   nvidia-ragset-judge-usf:
     provider: nvidia
-    model: nvidia/nemotron-3-super-120b-a12b
+    model: nvidia/nemotron-3-ultra-550b-a55b
     api_key_env: NVIDIA_API_KEY_USF
     purpose: ragset_workflow_judge
     capabilities:

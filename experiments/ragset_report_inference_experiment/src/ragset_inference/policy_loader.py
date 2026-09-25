@@ -534,6 +534,37 @@ def get_label_policy_text(
     return policy.get_label_section(label)
 
 
+def get_policy_hash(policy_path: str = "config/ragset_label_policy.yaml") -> str:
+    """Get SHA256 hash of the canonical policy YAML for versioning."""
+    import hashlib
+    path = Path(policy_path)
+    with open(path, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()[:16]
+
+
+def get_policy_version(policy_path: str = "config/ragset_label_policy.yaml") -> str:
+    """Get policy version identifier (hash-based)."""
+    return f"policy_{get_policy_hash(policy_path)}"
+
+
+# Policy precedence hierarchy (authoritative order)
+# 1. CSV Ground Truth (authoritative)
+# 2. GOLD_ANALYSIS (LLM analysis of gold)
+# 3. Canonical Policy YAML (runtime policy)
+# 4. Retrieved Examples (reference only, never override)
+POLICY_PRECEDENCE = [
+    "CSV_GROUND_TRUTH",
+    "GOLD_ANALYSIS",
+    "CANONICAL_POLICY_YAML",
+    "RETRIEVED_EXAMPLES"
+]
+
+
+def get_policy_precedence() -> list[str]:
+    """Get the canonical policy precedence hierarchy."""
+    return POLICY_PRECEDENCE.copy()
+
+
 if __name__ == "__main__":
     # Test the loader
     try:

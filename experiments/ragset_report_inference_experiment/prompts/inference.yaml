@@ -189,14 +189,125 @@ system_prompt: |
 
   Meniscocapsular edema is NOT automatically a tear.
 
+  ==================================================
+  MENISCUS: GRADE ≠ TEAR
+  ======================
+
+  Do not equate grade terminology with a confirmed meniscal tear.
+
+  * Grade I/II degeneration → NOT a confirmed tear.
+  * Grade II/2b meniscal injury or intrasubstance signal → NOT a confirmed tear unless the report explicitly establishes tear/rupture or surface-reaching tear.
+  * Meniscopathy/meniscosis/myxoid or mucoid degeneration → NOT a confirmed tear.
+  * Grade III degeneration + extrusion → do NOT automatically assign tear; follow the canonical gold policy.
+  * Explicit tear/rupture → positive.
+  * Suspected/possible/R-O/suspicious tear → do not force positive when policy is unresolved; use ambiguity handling.
+
+  If the report explicitly says both degeneration and tear, the explicit tear controls.
+
   For:
 
   * R/O tear
   * possible tear
   * suspicious tear
   * cannot exclude tear
+  * suspected tear
+  * probable tear (when used as uncertainty)
+  * may represent tear
+  * may be due to tear
+  * questionable tear
+  * equivocal tear
+  * likely tear (when GOLD_ANALYSIS does not explicitly map to positive)
 
   classify the finding as UNCERTAIN first, then use GOLD_ANALYSIS.
+
+  ==================================================
+  SUSPECTED / POSSIBLE / R-O TEARS — MUST REMAIN UNRESOLVED
+  ========================================================
+
+  Do NOT convert uncertain tear language into a confirmed tear merely because
+  the imaging description sounds suspicious.
+
+  The following are uncertainty markers:
+
+  * suspected
+  * suspicious
+  * possible
+  * probable, when used as uncertainty rather than a definitive diagnosis
+  * R/O
+  * rule out
+  * cannot exclude
+  * may represent
+  * may be due to
+  * questionable
+  * equivocal
+  * likely, when the GOLD_ANALYSIS does not explicitly map it to positive
+
+  For meniscal labels, if GOLD_ANALYSIS marks these expressions as
+  UNRESOLVED, they MUST remain unresolved.
+
+  Examples:
+
+  "suspicious small tear of medial meniscus"
+  → do NOT force Medial_Meniscus = 1.
+
+  "R/O tear of posterior horn medial meniscus"
+  → do NOT force Medial_Meniscus = 1.
+
+  "possible horizontal tear of lateral meniscus"
+  → do NOT force Lateral_Meniscus = 1.
+
+  "degeneration with suspected tear"
+  → do NOT treat the suspected component as a confirmed tear.
+
+  If the report contains both:
+
+  1. uncertain/suspected tear language, and
+  2. a separate explicit definitive tear statement,
+
+  the definitive statement may support a positive label.
+
+  Otherwise, when GOLD_ANALYSIS says the uncertainty convention is
+  UNRESOLVED, the correct workflow state is AMBIGUOUS rather than a forced
+  binary correction.
+
+  IMPORTANT:
+  Do not repeatedly regenerate the same binary value trying to resolve an
+  UNRESOLVED policy convention. Model 1 should provide its safest prediction;
+  Model 2 and Model 3 determine whether the case is genuinely ambiguous.
+
+  This directly fixes the oscillation/max-attempts failure mode.
+
+  The desired flow becomes:
+
+  "suspected horizontal tear"
+        ↓
+  Model 1
+        ↓
+  0 + uncertainty evidence
+        ↓
+  Model 2
+        ↓
+  UNRESOLVED_POLICY
+        ↓
+  Model 3
+        ↓
+  AMBIGUOUS
+        ↓
+  STOP
+
+  **Not:**
+
+  0
+  ↓
+  retry
+  ↓
+  1
+  ↓
+  retry
+  ↓
+  0
+  ↓
+  MAX_ATTEMPTS
 
   Never transfer medial-meniscus evidence to lateral meniscus.
 
@@ -234,9 +345,173 @@ system_prompt: |
   * MCL thickening compatible with injury
   * MCL intact/normal
 
+  ==================================================
+  CURRENT VS HISTORICAL LIGAMENT INJURY (CRITICAL)
+  ================================================
+
+  For ACL and MCL, distinguish a CURRENT structural injury from a
+  HISTORICAL/OLD injury.
+
+  CURRENT positive evidence includes explicit present-tense findings such as:
+
+  * ACL tear / rupture / injury / sprain
+  * MCL tear / rupture / injury / sprain
+  * persistent ligament abnormality explicitly described as current
+
+  HISTORICAL language includes:
+
+  * old
+  * ancient
+  * previous
+  * remote
+  * chronic, when clearly describing an old injury
+  * healed
+  * sequela
+  * prior
+  * ancienne / ancien
+  * other equivalent temporal wording
+
+  A historical/old ligament injury MUST NOT automatically produce a current
+  positive ACL or MCL label.
+
+  Examples:
+
+  "old low-grade MCL sprain"
+  → MCL = 0 unless the report separately documents a current MCL abnormality.
+
+  "ancienne entorse de bas grade du ligament collatéral médial"
+  → MCL = 0 unless a current MCL injury is separately documented.
+
+  "ACL sprain"
+  → ACL = 1 when the statement refers to the current examination/finding.
+
+  "chronic complete ACL tear"
+  → ACL = 1 if the report describes the tear as an existing structural
+  condition at the time of the examination. "Chronic" by itself does NOT
+  mean negative; distinguish chronic-existing pathology from explicitly
+  historical/resolved injury.
+
+  When temporal wording is ambiguous, do not invent a current-versus-historical
+  interpretation. Follow GOLD_ANALYSIS and allow Model 2/Model 3 to classify
+  the case as ambiguous if no deterministic mapping exists.
+
+  Never convert an old/historical ligament finding into a current positive
+  label solely because the words "sprain", "tear", or "injury" appear.
+
+  IMPORTANT:
+  Don't use a simplistic rule:
+
+  chronic = 0
+
+  because a chronic complete ACL tear can still be an existing structural ACL
+  pathology and therefore positive.
+
+  The distinction is:
+
+  old / previous / healed / ancienne injury
+                ↓
+  historical
+
+  chronic complete tear
+                ↓
+  existing pathology unless explicitly described as resolved
+
   Historical MCL findings must follow GOLD_ANALYSIS.
 
   Do not transfer ACL evidence to MCL or MCL evidence to ACL.
+
+  ==================================================
+  MCL: EXPLICIT SPRAIN IS POSITIVE
+  ================================
+
+  An explicitly documented CURRENT MCL sprain/injury is positive regardless of grade:
+
+  * Grade I MCL sprain → MCL=1
+  * Grade II MCL sprain → MCL=1
+  * Grade III MCL injury/sprain → MCL=1
+  * Explicit partial MCL tear → MCL=1
+
+  However:
+
+  * MCL distension alone → do NOT automatically assign MCL=1.
+  * MCL thickening alone → do NOT automatically assign MCL=1.
+  * Periligamentous edema/fluid alone → do NOT automatically assign MCL=1.
+
+  Historical language such as old, remote, previous, healed, ancient, sequela, or equivalent means the injury is historical unless a CURRENT MCL abnormality is also documented.
+
+  IMPORTANT:
+  chronic alone does NOT mean negative. A chronic complete tear can still be an existing structural pathology.
+
+  ==================================================
+  CONTUSION: BONE INFARCT ≠ CONTUSION
+  ===================================
+
+  For Contusion:
+
+  * Explicit bone contusion/bone bruise/osseous contusion → 1.
+  * Bone marrow edema alone → do NOT automatically assign 1.
+  * Subchondral edema alone → do NOT automatically assign 1.
+  * Reactive/stress-related marrow change → do NOT automatically assign 1.
+  * Bone infarct → 0 unless a separate explicit bone contusion is documented.
+  * Osteonecrosis/infarction/chronic marrow change → do NOT convert to contusion.
+
+  ==================================================
+  OSTEOCHONDRAL LESION ≠ OA
+  ===========================
+
+  Do NOT automatically map an osteochondral lesion to OA.
+
+  * Osteochondral lesion/defect/injury alone → does NOT establish OA.
+  * Focal cartilage defect alone → does NOT establish OA.
+  * Osteochondral lesion of the lateral tibial plateau → does NOT automatically mean Lateral_OA=1.
+  * Osteochondral lesion of the patella → does NOT automatically mean PF_OA=1.
+
+  Assign OA only when the report explicitly establishes OA/chondrosis/chondropathy/chondromalacia according to the canonical policy.
+
+  Osteochondral lesion alone also does NOT automatically establish fracture.
+
+  ==================================================
+  COMPARTMENT SCOPE
+  =================
+
+  Do not spread a focal lesion across compartments.
+
+  Use the actual anatomical compartment stated in the report.
+
+  Example:
+
+  osteochondral lesion of lateral tibial plateau
+
+  does NOT by itself justify:
+
+  Lateral_OA=1
+
+  Generalized/tricompartmental OA must follow the existing canonical gold convention. Do not invent a new mapping.
+
+  ==================================================
+  CORE RULE
+  ===========
+
+  Interpret the COMPLETE finding:
+
+  finding + anatomical location + certainty + temporal context + diagnostic wording
+
+  Do not assign a label from a single keyword or grade number.
+
+  If the wording is unresolved under the canonical policy, preserve the uncertainty and allow Model 2/Model 3 ambiguity handling.
+
+  ==================================================
+  UNRESOLVED POLICY/REPORT AMBIGUITY
+  ==================================================
+
+  When ORIGINAL_REPORT + CANONICAL_POLICY do not deterministically establish a label value:
+
+  - do not force a clinical label solely to satisfy the schema;
+  - do not alternate 0/1 across retries;
+  - preserve the unresolved state for Model2/Model3;
+  - retry only when there is a clear deterministic policy/report conflict.
+
+  Absence of evidence is not automatically EXPLICIT_ABSENT.
 
   ==================================================
   OA RULES — VERY IMPORTANT
@@ -307,6 +582,32 @@ system_prompt: |
   Patellar/trochlear abnormalities can support PF_OA when the location and GOLD_ANALYSIS support it.
 
   ==================================================
+  PF OA ANATOMICAL SCOPE
+  ======================
+
+  PF_OA must be supported by explicit patellofemoral anatomy such as:
+
+  * patella/patellar cartilage
+  * trochlea/trochlear cartilage
+  * patellofemoral compartment
+  * explicit patellofemoral OA/chondrosis/chondropathy/chondromalacia
+
+  Generic:
+
+  * femoral cartilage
+  * tibial cartilage
+  * femoral/tibial chondromalacia
+  * femoral/tibial chondropathy
+
+  must NOT automatically become PF_OA.
+
+  If patellar cartilage is explicitly normal and the only abnormal cartilage is generic femoral/tibial cartilage, do not invent PF_OA.
+
+  Do not spread a focal tibiofemoral lesion into PF_OA.
+
+  Similarly, do not spread a PF lesion into medial/lateral tibiofemoral OA.
+
+  ==================================================
   EFFUSION
   ========
 
@@ -341,6 +642,19 @@ system_prompt: |
 
   Other cysts do not automatically mean Bakers=1.
 
+  The following MUST NOT automatically become Bakers=1:
+
+  * parameniscal cyst
+  * meniscal cyst
+  * intrameniscal cyst
+  * ganglion cyst
+  * posterior synovial cyst
+  * synovial cyst
+  * prepatellar cyst/bursa
+  * other periarticular cysts
+  * generic fluid collection
+  * posterior PCL ganglion cyst
+
   Examples:
 
   ACL ganglion cyst ≠ Baker's cyst.
@@ -351,7 +665,13 @@ system_prompt: |
 
   Deep infrapatellar bursitis ≠ Baker's cyst.
 
+  parameniscal cyst ≠ Baker's cyst.
+
+  posterior synovial cyst ≠ Baker's cyst.
+
   Do not infer Bakers=1 without appropriate popliteal/Baker evidence unless GOLD_ANALYSIS explicitly establishes the mapping.
+
+  Do not infer Bakers=1 from the word "cyst" or from posterior location alone.
 
   ==================================================
   CONTUSION
@@ -578,6 +898,158 @@ system_prompt: |
   Do not invent a mapping that is not supported by GOLD_ANALYSIS.
 
   ==================================================
+  CLINICAL BOUNDARY SAFEGUARDS
+  =============================
+
+  purpose: >
+    Prevent false-positive label assignment from clinically associated,
+    indirect, historical, uncertain, or anatomically non-specific findings.
+
+  mandatory_rule:
+    - >
+      A label may be set to 1 only when ORIGINAL_REPORT contains a finding
+      that satisfies CANONICAL_POLICY for that specific label.
+    - >
+      Clinical association is NOT sufficient. Do not convert an associated
+      finding into a target label unless CANONICAL_POLICY explicitly permits it.
+    - >
+      When evidence is insufficient, use 0 only when CANONICAL_POLICY defines
+      the finding as SAFE_NEGATIVE. Otherwise preserve the policy-defined
+      unresolved/ambiguous behavior.
+
+  high_risk_boundaries:
+
+    contusion:
+      positive:
+        - >
+          Set Contusion=1 only when the report explicitly describes bone
+          contusion, bone bruise, or another term explicitly accepted by
+          CANONICAL_POLICY.
+      negative:
+        - >
+          Bone marrow edema, marrow signal abnormality, subchondral edema,
+          reactive edema, osteochondral edema, or stress-related edema alone
+          must NOT be converted to Contusion=1 unless CANONICAL_POLICY
+          explicitly maps that finding to Contusion.
+      critical:
+        - "bone marrow edema != bone contusion"
+
+    bakers:
+      positive:
+        - >
+          Set Bakers=1 only when the report explicitly identifies a
+          Baker's/Becker/popliteal cyst using terminology accepted by
+          CANONICAL_POLICY.
+      negative:
+        - >
+          Generic cyst, ganglion cyst, cystic lesion, parameniscal cyst,
+          synovial cyst, bursitis, or a cyst near the ACL/PCL must NOT be
+          converted to Bakers=1 unless the report explicitly identifies it
+          as a Baker's/popliteal cyst and the policy permits it.
+      critical:
+        - "ganglion cyst != Baker's cyst"
+        - "generic cyst != Baker's cyst"
+
+    meniscal_tear:
+      positive:
+        - >
+          Require explicit tear/injury language that satisfies the
+          CANONICAL_POLICY.
+      negative_or_unresolved:
+        - >
+          degeneration, mucoid degeneration, grade II/2b signal,
+          intrasubstance signal, or morphological abnormality alone is not
+          automatically a tear.
+        - >
+          R/O, rule-out, possible, suspected, suspicious, cannot exclude,
+          or equivalent uncertainty must follow CANONICAL_POLICY and must not
+          be silently converted to a confirmed tear.
+      critical:
+        - "degeneration != tear"
+        - "R/O tear != confirmed tear"
+
+    ligament_injury:
+      positive:
+        - >
+          Require explicit ligament injury/tear/sprain terminology accepted
+          by CANONICAL_POLICY.
+      temporal:
+        - >
+          Historical, old, chronic, remote, postoperative, or healed injury
+          must not automatically become a current positive label.
+        - >
+          Apply the temporal convention in CANONICAL_POLICY.
+      critical:
+        - "old injury != current injury"
+
+    osteoarthritis:
+      positive:
+        - >
+          Assign a compartment-specific OA label only when the report
+          identifies pathology in that anatomical compartment and the
+          finding satisfies CANONICAL_POLICY.
+      negative:
+        - >
+          Do not infer medial/lateral/patellofemoral OA merely because the
+          report contains generic cartilage abnormality, marrow edema,
+          osteophytes, or generic degenerative language unless
+          CANONICAL_POLICY explicitly maps that finding.
+      anatomy:
+        - >
+          Medial_OA requires medial/tibiofemoral-medial evidence.
+        - >
+          Lateral_OA requires lateral/tibiofemoral-lateral evidence.
+        - >
+          PF_OA requires patellar/trochlear/patellofemoral evidence.
+      critical:
+        - "generalized OA != automatically all three compartment labels"
+
+    synovitis:
+      positive:
+        - >
+          Require explicit synovitis/synovial hypertrophy/thickening or
+          another policy-approved synovial finding.
+      negative:
+        - >
+          Effusion alone does not imply Synovitis.
+          Baker/ganglion cyst fluid does not imply Synovitis.
+      critical:
+        - "effusion != synovitis"
+
+    clinical_question:
+      rule:
+        - >
+          Clinical indication, referral question, suspected diagnosis,
+          reason for examination, or diagnostic question is NOT an imaging
+          finding.
+        - >
+          Never create a positive label solely from a question such as
+          "meniscal tear?", "rule out ACL tear", or equivalent wording.
+        - >
+          If the report contains no actual imaging findings relevant to the
+          target labels, follow the no-evidence/ambiguity convention in
+          CANONICAL_POLICY.
+
+    evidence_hierarchy:
+      - "explicit target-specific finding"
+      - "explicit target-specific negative finding"
+      - "policy-approved contextual finding"
+      - "indirect finding"
+      - "clinical association"
+
+    final_safety_check:
+      - >
+        Before output, review every predicted 1 independently. Ask:
+        "What exact ORIGINAL_REPORT finding makes this label positive under
+        CANONICAL_POLICY?"
+      - >
+        If the answer is only an association, anatomical proximity, generic
+        abnormality, historical statement, or uncertain question, do not
+        assign 1 unless the policy explicitly permits it.
+      - >
+        Re-read the complete ORIGINAL_REPORT before finalizing all 12 labels.
+
+  ==================================================
   FINAL SELF-CHECK
   ================
 
@@ -585,7 +1057,7 @@ system_prompt: |
 
   1. Confirm all 12 labels are present.
   2. Confirm every value is exactly 0 or 1.
-  3. Confirm every evidence quote comes from ORIGINAL_REPORT.
+  2. Confirm every evidence quote comes from ORIGINAL_REPORT.
   4. Confirm evidence is verbatim and untranslated.
   5. Confirm missing evidence is null.
   6. Confirm no clinical question was treated as a confirmed finding.

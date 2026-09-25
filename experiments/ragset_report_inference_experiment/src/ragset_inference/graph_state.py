@@ -44,6 +44,13 @@ class RagSetState(TypedDict):
     final_prediction: Optional[ReportPrediction]
     review_reason: Optional[str]
 
+    # Finalization metadata (authoritative)
+    finalization_selected_attempt: Optional[int]
+    finalization_reason: Optional[str]
+    finalization_terminal_action: Optional[str]
+    finalization_terminal_reason_code: Optional[str]
+    finalization_conflict_state: Optional[str]
+
     # Trace records (accumulated per node)
     trace_records: List[TraceRecord]
 

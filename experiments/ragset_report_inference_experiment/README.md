@@ -23,7 +23,7 @@ Standalone experiment for the existing RagSet `train.csv` — knee MRI report la
 - **Config-Driven**: `max_output_tokens` read from `config/models.yaml`
 - **Rate Limiting**: 2-second wait between reports
 
-### Phase 3: NVIDIA Nemotron Ultra Integration (v3) — **Current**
+### Phase 3: NVIDIA Nemotron Ultra Integration (v3)
 - **New Provider**: Direct NVIDIA API at `https://integrate.api.nvidia.com/v1` (OpenAI-compatible)
 - **Model**: `nvidia/nemotron-3-super-120b-a12b` via NVIDIA API key
 - **Reasoning Control**: Configurable `reasoning` parameter (enabled/disabled via `extra_body`)
@@ -31,6 +31,16 @@ Standalone experiment for the existing RagSet `train.csv` — knee MRI report la
 - **Schema Hardening**: `evidence` and `corrected` fields accept `null` (coerced to `""` and `None`)
 - **YAML Fixes**: Fixed literal block scalar indentation in `validation.yaml`
 - **Verification**: All 24 pytest tests pass; inference validated on 1, 3, 5 report runs
+
+### Phase 4: LangGraph Orchestration (v4) — **Current**
+- **Orchestration**: LangGraph state machine replaces manual retry loop
+- **Nodes**: `initialize` → `inference` → `critic` → `judge` → `increment_attempt` / `finalize`
+- **State Management**: Immutable state updates with full history tracking (`prediction_history`, `critique_history`, `judgment_history`)
+- **Deterministic Safety Gates**: Critic output validated for structural integrity (evidence verbatim, proposed_value constraints, actionable consistency)
+- **Finalization Logic**: 5-tier priority selection from complete attempt history (PASS → policy-supported → resolved → pre-oscillation → terminal fallback)
+- **Trace System**: Single-writer pattern with `prompt_hash`, `policy_hash`, `policy_version` for auditability
+- **Policy Versioning**: `policy_hash` recorded in every trace for reproducibility
+- **Verification**: All 130 pytest tests pass (116 unit + 14 integration)
 
 ---
 
@@ -382,6 +392,7 @@ class ValidationIssue(BaseModel):
     corrected: Literal[0, 1] | None = None  # null allowed
     reason: str
     evidence: list[str] = []
+    schema_version: str = "1.0.0"
 
 class ValidationResult(BaseModel):
     status: Literal["PASS", "FAIL"]

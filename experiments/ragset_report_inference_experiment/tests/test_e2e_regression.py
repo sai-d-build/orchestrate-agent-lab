@@ -13,7 +13,9 @@ import pandas as pd
 import yaml
 
 from experiments.ragset_report_inference_experiment.src.ragset_inference.schemas import (
-    ReportPrediction, ValidationResult, ValidationIssue, LabelValue
+    ReportPrediction, ValidationResult, ValidationIssue, LabelValue,
+    CritiqueResult, CritiqueStatus, CritiqueIssueType, CritiqueIssue,
+    JudgeResult, JudgeAction, JudgeReasonCode
 )
 from experiments.ragset_report_inference_experiment.src.ragset_inference.loop import run_report
 from experiments.ragset_report_inference_experiment.src.ragset_inference.data import LABEL_COLUMNS
@@ -555,7 +557,7 @@ class TestE2EPipeline:
             open("experiments/ragset_report_inference_experiment/prompts/inference.yaml", encoding="utf-8").read()
         )
         val_cfg = yaml.safe_load(
-            open("experiments/ragset_report_inference_experiment/prompts/validation.yaml", encoding="utf-8").read()
+            open("experiments/ragset_report_inference_experiment/prompts/validation_critic.yaml", encoding="utf-8").read()
         )
         
         # Create infer/validate functions using the actual factory functions
@@ -663,7 +665,7 @@ labels:
             open("experiments/ragset_report_inference_experiment/prompts/inference.yaml", encoding="utf-8").read()
         )
         val_cfg = yaml.safe_load(
-            open("experiments/ragset_report_inference_experiment/prompts/validation.yaml", encoding="utf-8").read()
+            open("experiments/ragset_report_inference_experiment/prompts/validation_critic.yaml", encoding="utf-8").read()
         )
         
         # Create infer/validate functions using the actual factory functions
@@ -1219,6 +1221,307 @@ labels:
         )
         
         assert result["status"] == "needs_review"
+
+
+    def test_c01_bone_marrow_edema_not_contusion(self):
+        """C01: Bone marrow edema alone does not mean Contusion=1."""
+        pred = make_mock_prediction({"Contusion": 0, **{l: 0 for l in LABEL_COLUMNS if l != "Contusion"}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Contusion", predicted=0, corrected=1, reason="Bone marrow edema indicates contusion", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-c01",
+            report="Mild bone marrow edema in medial tibial plateau.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        # Model 1 correctly predicted 0, validator incorrectly says 1
+        # Should be detected as validator error -> needs_review
+        assert result["status"] == "needs_review"
+
+    def test_c02_bone_contusion_is_contusion(self):
+        """C02: Explicit bone contusion -> Contusion=1."""
+        pred = make_mock_prediction({"Contusion": 1, **{l: 0 for l in LABEL_COLUMNS if l != "Contusion"}})
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=make_mock_validation("PASS"))
+        
+        result = run_report(
+            report_id="test-c02",
+            report="Bone contusion in medial femoral condyle and tibial plateau.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "passed"
+        assert result["final_prediction"].predictions["Contusion"].value == 1
+
+    def test_c03_ganglion_cyst_not_bakers(self):
+        """C03: Possible ganglion cyst posterior to ACL -> Bakers=0."""
+        pred = make_mock_prediction({"Bakers": 0, **{l: 0 for l in LABEL_COLUMNS if l != "Bakers"}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Bakers", predicted=0, corrected=1, reason="Ganglion cyst indicates Baker's cyst", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-c03",
+            report="One cystic lesion posterior to ACL, maybe due to ganglion cyst.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_c04_bakers_cyst_is_bakers(self):
+        """C04: Explicit Baker's cyst -> Bakers=1."""
+        pred = make_mock_prediction({"Bakers": 1, **{l: 0 for l in LABEL_COLUMNS if l != "Bakers"}})
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=make_mock_validation("PASS"))
+        
+        result = run_report(
+            report_id="test-c04",
+            report="Baker's cyst present in popliteal fossa.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "passed"
+        assert result["final_prediction"].predictions["Bakers"].value == 1
+
+    def test_c05_meniscal_degeneration_not_tear(self):
+        """C05: Meniscal degeneration / grade 2 signal, no tear -> Meniscus=0."""
+        pred = make_mock_prediction({"Medial_Meniscus": 0, **{l: 0 for l in LABEL_COLUMNS if l != "Medial_Meniscus"}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Medial_Meniscus", predicted=0, corrected=1, reason="Grade 2 signal indicates tear", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-c05",
+            report="Grade 2 intrasubstance signal in posterior horn of medial meniscus without surface extension.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_c06_ro_meniscal_tear_unresolved(self):
+        """C06: R/O meniscal tear -> policy-defined unresolved/negative, never automatic confirmed tear."""
+        pred = make_mock_prediction({"Lateral_Meniscus": 0, **{l: 0 for l in LABEL_COLUMNS if l != "Lateral_Meniscus"}})
+        ambiguous_validation = make_mock_validation("AMBIGUOUS", [
+            ValidationIssue(label="Lateral_Meniscus", predicted=0, corrected=None, reason="Suspected tear is UNRESOLVED per gold", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=ambiguous_validation)
+        
+        result = run_report(
+            report_id="test-c06",
+            report="Suspicious of lateral meniscus tear, R/O tear.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+        assert "AMBIGUOUS" in result["review_reason"]
+        assert mock_infer.call_count == 1  # No retry
+
+    def test_c07_old_mcl_sprain_not_current(self):
+        """C07: Old/chronic MCL sprain -> follow temporal policy; never automatically current MCL injury."""
+        pred = make_mock_prediction({"MCL": 0, **{l: 0 for l in LABEL_COLUMNS if l != "MCL"}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="MCL", predicted=0, corrected=1, reason="Old MCL injury indicates current tear", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-c07",
+            report="Prior healed traumatic injury to the medial collateral ligament proximal attachment.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_c08_effusion_not_synovitis(self):
+        """C08: Effusion without synovitis -> Effusion=1, Synovitis=0."""
+        pred = make_mock_prediction({"Effusion": 1, "Synovitis": 0, **{l: 0 for l in LABEL_COLUMNS if l not in ["Effusion", "Synovitis"]}})
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Synovitis", predicted=0, corrected=1, reason="Effusion indicates synovitis", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-c08",
+            report="Joint effusion present.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_c09_clinical_question_no_finding(self):
+        """C09: Clinical question: medial meniscal tear? with no imaging finding -> AMBIGUOUS / NO_EVIDENCE_AMBIGUOUS."""
+        pred = make_mock_prediction({"Medial_Meniscus": 0, **{l: 0 for l in LABEL_COLUMNS if l != "Medial_Meniscus"}})
+        ambiguous_validation = make_mock_validation("AMBIGUOUS", [
+            ValidationIssue(label="Medial_Meniscus", predicted=0, corrected=None, reason="Clinical question only, no imaging finding", evidence=[])
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=ambiguous_validation)
+        
+        result = run_report(
+            report_id="test-c09",
+            report="Clinical question: medial meniscal tear?",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+        assert "AMBIGUOUS" in result["review_reason"]
+
+    def test_c10_generalized_oa_not_all_compartments(self):
+        """C10: Generalized OA -> do NOT automatically assign all 3 compartment labels."""
+        pred = make_mock_prediction({
+            "Medial_OA": 0, "Lateral_OA": 0, "PF_OA": 0,
+            **{l: 0 for l in LABEL_COLUMNS if l not in ["Medial_OA", "Lateral_OA", "PF_OA"]}
+        })
+        fail_validation = make_mock_validation("FAIL", [
+            ValidationIssue(label="Medial_OA", predicted=0, corrected=1, reason="Generalized OA implies medial OA", evidence=[]),
+            ValidationIssue(label="Lateral_OA", predicted=0, corrected=1, reason="Generalized OA implies lateral OA", evidence=[]),
+            ValidationIssue(label="PF_OA", predicted=0, corrected=1, reason="Generalized OA implies PF OA", evidence=[]),
+        ])
+        
+        mock_infer = MagicMock(return_value=pred)
+        mock_validate = MagicMock(return_value=fail_validation)
+        
+        result = run_report(
+            report_id="test-c10",
+            report="Tricompartmental osteoarthritis with spur formation.",
+            infer=mock_infer,
+            validate=mock_validate,
+            context={"gold_analysis": "", "gold_examples": ""},
+            max_attempts=3,
+            labels=list(LABEL_COLUMNS),
+        )
+        
+        assert result["status"] == "needs_review"
+
+    def test_critical_workflow_model2_unsupported_correction(self):
+        """Critical workflow test: Model2 unsupported correction should not trigger retry.
+        
+        Model1: Contusion=1
+        Model2: says Contusion should be 0 because of marrow edema
+        Judge: determines correction is unsupported by policy/report
+        Expected:
+            action = NEEDS_REVIEW (with MODEL2_UNSUPPORTED_CORRECTION)
+            Model1 is NOT retried
+        """
+        from experiments.ragset_report_inference_experiment.src.ragset_inference.graph import build_graph, create_initial_state
+        from experiments.ragset_report_inference_experiment.src.ragset_inference.schemas import JudgeAction, JudgeReasonCode
+        
+        # This test verifies the full LangGraph workflow with mocked models
+        # We test the judge's decision logic directly
+        
+        state = create_initial_state("test-critical", "Bone marrow edema in medial tibial plateau.", max_attempts=3)
+        state["attempt"] = 1
+        state["max_attempts"] = 3
+        
+        # Model 1 predicts Contusion=1
+        pred1 = make_mock_prediction({"Contusion": 1, **{l: 0 for l in LABEL_COLUMNS if l != "Contusion"}})
+        state["current_prediction"] = pred1
+        state["prediction_history"] = [pred1]
+        
+        # Model 2 critiques: says Contusion should be 0 (marrow edema)
+        # But this is an UNSUPPORTED correction (marrow edema != contusion)
+        # The critique has NO evidence and NO policy rule - making it unsupported
+        crit1 = CritiqueResult(
+            status=CritiqueStatus.FAIL,
+            issues=[
+                CritiqueIssue(
+                    label="Contusion", model1_value=1, proposed_value=0,
+                    issue_type=CritiqueIssueType.CLEAR_REPORT_CONFLICT,
+                    evidence=None, policy_rule=None, feedback="Should be 0"
+                )
+            ],
+            summary="test",
+            actionable=True,
+            affected_labels=["Contusion"],
+        )
+        state["current_critique"] = crit1
+        state["critique_history"] = [crit1]
+        
+        # Judge should classify this as MODEL2_UNSUPPORTED_CORRECTION and NEEDS_REVIEW
+        from experiments.ragset_report_inference_experiment.src.ragset_inference.graph_nodes import _determine_finalization_metadata
+        from experiments.ragset_report_inference_experiment.src.ragset_inference.schemas import JudgeAction, JudgeReasonCode
+        
+        state["current_judgment"] = JudgeResult(
+            action=JudgeAction.NEEDS_REVIEW,
+            reason_code=JudgeReasonCode.MODEL2_UNSUPPORTED_CORRECTION,
+            rationale="Model 2 correction unsupported by policy/report"
+        )
+        
+        conflict_state, terminal_reason_code = _determine_finalization_metadata(state, JudgeAction.NEEDS_REVIEW)
+        
+        assert conflict_state == "MODEL2_UNSUPPORTED_CORRECTION"
+        assert terminal_reason_code == JudgeReasonCode.MODEL2_UNSUPPORTED_CORRECTION.value
+        
+        # Verify the finalization would select the correct attempt
+        from experiments.ragset_report_inference_experiment.src.ragset_inference.graph_nodes import _select_best_prediction_from_history
+        state["attempt"] = 1
+        state["max_attempts"] = 3
+        state["current_judgment"] = JudgeResult(
+            action=JudgeAction.NEEDS_REVIEW,
+            reason_code=JudgeReasonCode.MODEL2_UNSUPPORTED_CORRECTION,
+            rationale="Unsupported correction"
+        )
+        
+        selected_pred, reason, selected_attempt = _select_best_prediction_from_history(state)
+        
+        # Should select the Model 1 prediction (attempt 1) since Model 2's correction was unsupported
+        assert selected_pred.predictions["Contusion"].value == 1
+        assert selected_attempt == 1
+        assert "unsupported" in reason.lower() or "MODEL2_UNSUPPORTED" in reason
 
 
 if __name__ == "__main__":

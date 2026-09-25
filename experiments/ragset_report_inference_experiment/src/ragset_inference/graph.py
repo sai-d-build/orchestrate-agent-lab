@@ -33,9 +33,18 @@ def route_judgment(state: RagSetState) -> str:
     elif action == JudgeAction.STOP:
         return "finalize"
     elif action == JudgeAction.RETRY_MODEL1:
-        return "inference"
+        return "increment_attempt"
     else:
         return "finalize"
+
+
+def increment_attempt_node(state: RagSetState) -> RagSetState:
+    """
+    Increment attempt counter before retrying Model 1.
+    """
+    new_state = dict(state)
+    new_state["attempt"] = state["attempt"] + 1
+    return new_state
 
 
 def build_graph() -> StateGraph:
@@ -50,6 +59,7 @@ def build_graph() -> StateGraph:
     graph.add_node("critic", critic_node)
     graph.add_node("judge", judge_node)
     graph.add_node("finalize", finalize_node)
+    graph.add_node("increment_attempt", increment_attempt_node)
 
     # Add edges
     graph.add_edge(START, "initialize")
@@ -63,9 +73,12 @@ def build_graph() -> StateGraph:
         route_judgment,
         {
             "finalize": "finalize",
-            "inference": "inference",
+            "increment_attempt": "increment_attempt",
         }
     )
+
+    # Retry path: increment attempt -> inference
+    graph.add_edge("increment_attempt", "inference")
 
     graph.add_edge("finalize", END)
 
@@ -103,4 +116,9 @@ def create_initial_state(
         "final_prediction": None,
         "review_reason": None,
         "trace_records": [],
+        "finalization_selected_attempt": None,
+        "finalization_reason": None,
+        "finalization_terminal_action": None,
+        "finalization_terminal_reason_code": None,
+        "finalization_conflict_state": None,
     }

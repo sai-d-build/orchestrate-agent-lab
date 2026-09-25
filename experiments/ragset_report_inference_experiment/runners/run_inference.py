@@ -11,6 +11,159 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import yaml as yaml_mod
+
+
+def validate_startup_config(
+    exp_path: Path,
+    root: Path,
+    cfg: dict,
+    labels_cfg: dict,
+    models_cfg: dict,
+    inf_cfg: dict,
+    val_cfg: dict,
+    judge_cfg: dict,
+    labels: list,
+) -> tuple[bool, list[str], list[str]]:
+    """
+    Comprehensive startup validation before processing any reports.
+    
+    Only validates the model profiles actually used in this experiment
+    (as defined in experiment.yaml), not all profiles in models.yaml.
+    
+    Returns:
+        (is_valid, errors, warnings)
+    """
+    errors = []
+    warnings = []
+    
+    # 1. Validate required files exist
+    required_files = {
+        "train.csv": root / "train.csv",
+        "policy YAML": root / "config" / "ragset_label_policy.yaml",
+        "gold analysis": exp_path / "results/gold/gold_analysis.json",
+        "inference prompt": exp_path / "prompts/inference.yaml",
+        "critic prompt": exp_path / "prompts/validation_critic.yaml",
+        "judge prompt": exp_path / "prompts/judge.yaml",
+        "experiment config": exp_path / "config/experiment.yaml",
+        "labels config": exp_path / "config/labels.yaml",
+        "models config": root / "config/models.yaml",
+    }
+    
+    for name, path in required_files.items():
+        if not path.exists():
+            errors.append(f"Required file missing: {name} at {path}")
+    
+    # 2. Validate labels match across configs
+    if set(labels) != set(LABEL_COLUMNS):
+        errors.append(f"Labels mismatch: labels.yaml has {set(labels)}, data.py expects {set(LABEL_COLUMNS)}")
+    
+    # 3. Determine which model profiles are actually used in this experiment
+    inf_profiles = cfg["models"].get("inference_profiles", [cfg["models"].get("inference_profile")])
+    val_profiles = cfg["models"].get("validator_profiles", [cfg["models"].get("validator_profile")])
+    judge_profiles = cfg["models"].get("judge_profiles", [cfg["models"].get("judge_profile")])
+    gold_analysis_profile = cfg["models"].get("gold_analysis_profile")
+    
+    used_profiles = set(inf_profiles + val_profiles + judge_profiles)
+    if gold_analysis_profile:
+        used_profiles.add(gold_analysis_profile)
+    
+    # Filter out None values
+    used_profiles = {p for p in used_profiles if p is not None}
+    
+    # 3. Validate ONLY the model profiles actually used in this experiment
+    required_model_fields = ["model", "provider", "parameters"]
+    for profile_name in used_profiles:
+        profile = models_cfg.get("models", {}).get(profile_name)
+        if not profile:
+            errors.append(f"Model profile '{profile_name}' referenced in experiment.yaml not found in models.yaml")
+            continue
+            
+        for field in ["model", "provider", "parameters"]:
+            if field not in profile:
+                errors.append(f"Model profile '{profile_name}' missing required field: {field}")
+        
+        # Validate provider
+        valid_providers = ["openrouter", "nvidia", "openai", "anthropic", "gemini", "groq", "mistral"]
+        if profile.get("provider") not in valid_providers:
+            warnings.append(f"Model profile '{profile_name}' has unknown provider: {profile.get('provider')}")
+        
+        # Validate parameters
+        params = profile.get("parameters", {})
+        if "max_output_tokens" not in params:
+            warnings.append(f"Model profile '{profile_name}' missing max_output_tokens parameter")
+        if "temperature" not in params:
+            warnings.append(f"Model profile '{profile_name}' missing temperature parameter")
+    
+    # 4. Validate prompt files have required templates
+    for name, prompt_cfg in [("inference", inf_cfg), ("critic", val_cfg), ("judge", judge_cfg)]:
+        if "system_prompt" not in prompt_cfg:
+            errors.append(f"{name} prompt missing system_prompt")
+        if "user_prompt_template" not in prompt_cfg:
+            errors.append(f"{name} prompt missing user_prompt_template")
+    
+    # 5. Validate required environment variables ONLY for providers actually used
+    required_env_vars = set()
+    for profile_name in used_profiles:
+        profile = models_cfg.get("models", {}).get(profile_name, {})
+        api_key_env = profile.get("api_key_env", "OPENROUTER_API_KEY")
+        required_env_vars.add(api_key_env)
+    
+    for env_var in required_env_vars:
+        if not os.environ.get(env_var):
+            errors.append(f"Required environment variable not set: {env_var}")
+    
+    # 6. Validate policy file can be loaded and validated
+    try:
+        from experiments.ragset_report_inference_experiment.src.ragset_inference.policy_loader import load_canonical_policy
+        policy_result = load_canonical_policy(
+            csv_path=str(root / "train.csv"),
+            gold_analysis_path=str(exp_path / "results/gold/gold_analysis.json"),
+            policy_path=str(root / "config/ragset_label_policy.yaml")
+        )
+        # load_canonical_policy returns (CanonicalPolicy, errors, warnings)
+        if isinstance(policy_result, tuple):
+            policy = policy_result[0]
+        else:
+            policy = policy_result
+        # Check policy has all required labels (CanonicalPolicy has .labels attribute)
+        policy_labels = set(policy.labels.keys())
+        required_labels = set(labels)
+        missing_labels = required_labels - policy_labels
+        if missing_labels:
+            errors.append(f"Policy missing required labels: {missing_labels}")
+    except Exception as e:
+        errors.append(f"Policy validation failed: {e}")
+    
+    # 7. Validate experiment config has required sections
+    required_config_sections = ["source", "retrieval", "loop", "runtime", "models"]
+    for section in required_config_sections:
+        if section not in cfg:
+            errors.append(f"Experiment config missing required section: {section}")
+    
+    # 8. Validate retrieval config
+    if "top_k" not in cfg.get("retrieval", {}):
+        warnings.append("Retrieval config missing top_k parameter")
+    
+    # 9. Validate loop config
+    if "max_attempts" not in cfg.get("loop", {}):
+        errors.append("Loop config missing max_attempts")
+    elif cfg["loop"]["max_attempts"] < 1:
+        errors.append("Loop max_attempts must be >= 1")
+    
+    # 10. Validate runtime config
+    if "output_dir" not in cfg.get("runtime", {}):
+        warnings.append("Runtime config missing output_dir")
+    
+    is_valid = len(errors) == 0
+    return is_valid, errors, warnings
+
+
+# Import LABEL_COLUMNS for validation
+from experiments.ragset_report_inference_experiment.src.ragset_inference.data import LABEL_COLUMNS
+
+load_dotenv()
+
+import yaml as yaml_mod
 from experiments.ragset_report_inference_experiment.src.ragset_inference.policy_loader import get_canonical_policy_text
 from experiments.ragset_report_inference_experiment.src.ragset_inference.data import (
     load_train, split_gold, LABEL_COLUMNS,
@@ -19,10 +172,11 @@ from experiments.ragset_report_inference_experiment.src.ragset_inference.gold im
     analyze_gold, format_gold_examples,
 )
 from experiments.ragset_report_inference_experiment.src.ragset_inference.retrieval import GoldRetriever
-from experiments.ragset_report_inference_experiment.src.ragset_inference.models import InferenceModel, ValidatorModel
-from experiments.ragset_report_inference_experiment.src.ragset_inference.loop import run_report
+from experiments.ragset_report_inference_experiment.src.ragset_inference.models import InferenceModel, CriticModel, JudgeModel
+from experiments.ragset_report_inference_experiment.src.ragset_inference.graph import build_graph, create_initial_state
 from experiments.ragset_report_inference_experiment.src.ragset_inference.evaluate import evaluate
 from experiments.ragset_report_inference_experiment.src.ragset_inference.trace import write_trace
+from experiments.ragset_report_inference_experiment.src.ragset_inference.schemas import ReportPrediction
 
 
 def make_infer_fn(model, inf_cfg, trace_collector, labels, gold_analysis):
@@ -151,16 +305,18 @@ def make_validate_fn(model, val_cfg, trace_collector, labels, gold_analysis):
 
 
 def run_heldout_evaluation(
-    heldout_df, gold_df, retriever, model1, model2,
-    inf_cfg, val_cfg, labels, cfg, trace_path,
+    heldout_df, gold_df, retriever, model1, model2, model3,
+    inf_cfg, val_cfg, judge_cfg, labels, cfg, trace_path,
 ):
-    """Run the loop on a held-out gold set and evaluate results.
+    """Run the LangGraph pipeline on a held-out gold set and evaluate results.
 
     Uses retrieve_excluding to prevent data leakage:
     a held-out report is never retrieved into its own context.
     """
     print("\n--- Held-out evaluation ---")
     predictions = []
+    graph = build_graph()
+    
     for _, row in heldout_df.iterrows():
         report_id = str(row["StudyInstanceUID"])
         report = str(row["Report"])
@@ -177,53 +333,63 @@ def run_heldout_evaluation(
             gold_analysis_path=str(Path(__file__).resolve().parents[3] / "experiments/ragset_report_inference_experiment/results/gold/gold_analysis.json"),
             policy_path=str(Path(__file__).resolve().parents[3] / "config/ragset_label_policy.yaml")
         )
-        context = {
-            "gold_analysis": gold_analysis_text,
-            "gold_examples": relevant,
-        }
-        # Use trace collectors for heldout eval (sequential, but with trace collection)
-        infer_traces = {}
-        validate_traces = {}
-        infer_fn = make_infer_fn(model1, inf_cfg, infer_traces, labels, gold_analysis_text)
-        validate_fn = make_validate_fn(model2, val_cfg, validate_traces, labels, gold_analysis_text)
-        result = run_report(
-            report_id=report_id,
-            report=report,
-            infer=infer_fn,
-            validate=validate_fn,
-            context=context,
-            max_attempts=cfg["loop"]["max_attempts"],
-            labels=labels,
-        )
-        # Write collected traces
-        for trace in infer_traces.values():
-            write_trace(trace_path, **trace)
-        for trace in validate_traces.values():
-            write_trace(trace_path, **trace)
         
-        pred = result["final_prediction"]
-        # Extract inferred evidence from final prediction
-        inferred_evidence = {
-            label: pred.predictions[label].evidence
-            for label in pred.predictions
-            if pred.predictions[label].evidence
-        }
-        predictions.append({
-            "StudyInstanceUID": result["report_id"],
-            **pred.to_dict(),
-            "Report": report,
-            "original_report": report,
-            "inferred_evidence": inferred_evidence,
-        })
+        # Create initial LangGraph state
+        initial_state = create_initial_state(
+            study_instance_uid=report_id,
+            report=report,
+            max_attempts=cfg["loop"]["max_attempts"],
+        )
+        initial_state["canonical_policy"] = gold_analysis_text
+        initial_state["retrieved_gold_context"] = relevant
+        
+        # Run the LangGraph pipeline
+        try:
+            final_state = graph.invoke(
+                initial_state,
+                config={"configurable": {
+                    "retriever": retriever,
+                    "inference_model": model1,
+                    "critic_model": model2,
+                    "judge_model": model3,
+                }}
+            )
+        except Exception as e:
+            print(f"  ERROR processing {report_id}: {e}")
+            continue
+        
+        # Extract results from final state
+        final_prediction = final_state.get("final_prediction")
+        final_status = final_state.get("final_status", "error")
+        review_reason = final_state.get("review_reason")
+        
+        if final_prediction:
+            inferred_evidence = {
+                label: final_prediction.predictions[label].evidence
+                for label in final_prediction.predictions
+                if final_prediction.predictions[label].evidence
+            }
+            predictions.append({
+                "StudyInstanceUID": report_id,
+                **final_prediction.to_dict(),
+                "Report": report,
+                "original_report": report,
+                "inferred_evidence": inferred_evidence,
+            })
+    
+    if predictions:
+        pred_df = type(heldout_df)(predictions)
+        eval_results = evaluate(heldout_df, pred_df)
+        print(json.dumps(eval_results, indent=2))
+        return eval_results
+    else:
+        print("No successful predictions")
+        return {}
 
-    pred_df = type(heldout_df)(predictions)
-    eval_results = evaluate(heldout_df, pred_df)
-    print(json.dumps(eval_results, indent=2))
-    return eval_results
 
-
-def load_existing_predictions(result_path: Path) -> set[str]:
+def load_existing_predictions(result_path: Path | str) -> set[str]:
     """Load already-processed report IDs from existing predictions file."""
+    result_path = Path(result_path)
     if not result_path.exists():
         return set()
     processed = set()
@@ -252,9 +418,11 @@ def append_prediction(result_path: Path, serializable: dict):
 def worker_process_chunk(
     reports_chunk: list,
     model1: InferenceModel,
-    model2: ValidatorModel,
+    model2: CriticModel,
+    model3: JudgeModel,
     inf_cfg: dict,
     val_cfg: dict,
+    judge_cfg: dict,
     labels: list[str],
     gold_analysis_text: str,
     retriever: GoldRetriever,
@@ -262,19 +430,14 @@ def worker_process_chunk(
     result_queue: queue.Queue,
     worker_id: int,
 ):
-    """Process a chunk of reports in a worker thread.
+    """Process a chunk of reports in a worker thread using LangGraph.
 
-    Each report goes through the full inference+validation loop.
+    Each report goes through the full inference+critic+judge graph.
     Results and traces are sent to result_queue for the main thread to write.
     """
-    # Create per-worker trace collectors (dict keyed by report_id)
-    infer_traces = {}
-    validate_traces = {}
+    # Build the graph once per worker
+    graph = build_graph()
     
-    # Create per-worker closures with trace collectors
-    infer_fn = make_infer_fn(model1, inf_cfg, infer_traces, labels, gold_analysis_text)
-    validate_fn = make_validate_fn(model2, val_cfg, validate_traces, labels, gold_analysis_text)
-
     for idx, row in reports_chunk:
         report_id = str(row["StudyInstanceUID"])
         report = str(row["Report"])
@@ -285,55 +448,86 @@ def worker_process_chunk(
             f"STUDY {x['study_id']}\nLABELS: {x['labels']}\nREPORT:\n{x['report']}"
             for x in retrieved
         )
-        context = {
-            "gold_analysis": gold_analysis_text,
-            "gold_examples": relevant,
-        }
+        
+        # Create initial LangGraph state
+        initial_state = create_initial_state(
+            study_instance_uid=report_id,
+            report=report,
+            max_attempts=max_attempts,
+        )
+        initial_state["canonical_policy"] = gold_analysis_text
+        initial_state["retrieved_gold_context"] = relevant
 
         try:
-            result = run_report(
-                report_id=report_id,
-                report=report,
-                infer=infer_fn,
-                validate=validate_fn,
-                context=context,
-                max_attempts=max_attempts,
-                labels=labels,
+            # Run the LangGraph pipeline
+            final_state = graph.invoke(
+                initial_state,
+                config={"configurable": {
+                    "retriever": retriever,
+                    "inference_model": model1,
+                    "critic_model": model2,
+                    "judge_model": model3,
+                }}
             )
-
+            
+            # Extract results from final state
+            final_prediction = final_state.get("final_prediction")
+            final_status = final_state.get("final_status", "error")
+            review_reason = final_state.get("review_reason")
+            selected_attempt = final_state.get("finalization_selected_attempt")
+            finalization_reason = final_state.get("finalization_reason")
+            terminal_action = final_state.get("finalization_terminal_action")
+            terminal_reason_code = final_state.get("finalization_terminal_reason_code")
+            
             # Serialize prediction
-            pred = result["final_prediction"]
-            inferred_evidence = {
-                label: pred.predictions[label].evidence
-                for label in pred.predictions
-                if pred.predictions[label].evidence
-            }
-            serializable = {
-                "report_id": result["report_id"],
-                "status": result["status"],
-                "review_reason": result["review_reason"],
-                "original_report": report,
-                "inferred_evidence": inferred_evidence,
-                "attempts": [
-                    {
-                        "attempt": a.number,
-                        "prediction": a.prediction.model_dump(),
-                        "validation": a.validation.model_dump(),
-                        "elapsed_seconds": a.elapsed_seconds,
-                    }
-                    for a in result["attempts"]
-                ],
-                "final_prediction": pred.model_dump(),
-            }
+            if final_prediction:
+                inferred_evidence = {
+                    label: final_prediction.predictions[label].evidence
+                    for label in final_prediction.predictions
+                    if final_prediction.predictions[label].evidence
+                }
+                serializable = {
+                    "report_id": report_id,
+                    "status": final_status,
+                    "review_reason": review_reason,
+                    "original_report": report,
+                    "inferred_evidence": inferred_evidence,
+                    "final_prediction": final_prediction.model_dump(),
+                    "finalization_selected_attempt": selected_attempt,
+                    "finalization_reason": finalization_reason,
+                    "finalization_terminal_action": terminal_action,
+                    "finalization_terminal_reason_code": terminal_reason_code,
+                }
+            else:
+                serializable = {
+                    "report_id": report_id,
+                    "status": "error",
+                    "review_reason": "No final prediction produced",
+                    "original_report": report,
+                    "inferred_evidence": {},
+                    "final_prediction": None,
+                }
 
             # Queue prediction for writer
             result_queue.put({"type": "prediction", "data": serializable})
-
-            # Queue trace records from collectors (direct lookup by report_id)
-            if report_id in infer_traces:
-                result_queue.put({"type": "trace", "data": infer_traces[report_id]})
-            if report_id in validate_traces:
-                result_queue.put({"type": "trace", "data": validate_traces[report_id]})
+            
+            # Queue trace records from state
+            for trace in final_state.get("trace_records", []):
+                trace_dict = trace.model_dump() if hasattr(trace, 'model_dump') else trace
+                # Map field names for write_trace compatibility
+                if "study_instance_uid" in trace_dict and "report_id" not in trace_dict:
+                    trace_dict["report_id"] = trace_dict.pop("study_instance_uid")
+                if "requested_model" in trace_dict and "model" not in trace_dict:
+                    trace_dict["model"] = trace_dict.pop("requested_model")
+                # Filter to only include valid write_trace parameters
+                valid_keys = {
+                    "report_id", "stage", "model", "attempt", "prompt", "status",
+                    "latency_seconds", "input_tokens", "output_tokens", "error",
+                    "provider", "actual_model", "graph_node", "judge_action",
+                    "response_hash", "timestamp_utc"
+                }
+                filtered_dict = {k: v for k, v in trace_dict.items() if k in valid_keys}
+                result_queue.put({"type": "trace", "data": filtered_dict})
 
             result_queue.put({"type": "progress", "report_id": report_id})
 
@@ -364,7 +558,10 @@ def main(limit: int | None = None, resume: bool = False, overwrite: bool = False
         (exp / "prompts/inference.yaml").read_text(encoding="utf-8")
     )
     val_cfg = yaml.safe_load(
-        (exp / "prompts/validation.yaml").read_text(encoding="utf-8")
+        (exp / "prompts/validation_critic.yaml").read_text(encoding="utf-8")
+    )
+    judge_cfg = yaml.safe_load(
+        (exp / "prompts/judge.yaml").read_text(encoding="utf-8")
     )
 
     labels = labels_cfg["labels"]
@@ -373,32 +570,59 @@ def main(limit: int | None = None, resume: bool = False, overwrite: bool = False
     gold_examples = format_gold_examples(gold)
     retriever = GoldRetriever(gold, top_k=cfg["retrieval"]["top_k"])
 
-    # Load canonical policy with validation gate
+    # Load model profiles from config/models.yaml (needed for validation)
     root = Path(__file__).resolve().parents[3]
     exp = root / "experiments/ragset_report_inference_experiment"
+    models_cfg = yaml_mod.safe_load(
+        (root / "config" / "models.yaml").read_text(encoding="utf-8")
+    )
+
+    # Run comprehensive startup validation
+    is_valid, errors, warnings = validate_startup_config(
+        exp_path=exp,
+        root=root,
+        cfg=cfg,
+        labels_cfg=labels_cfg,
+        models_cfg=models_cfg,
+        inf_cfg=inf_cfg,
+        val_cfg=val_cfg,
+        judge_cfg=judge_cfg,
+        labels=labels,
+    )
+    
+    if warnings:
+        print("Startup validation warnings:")
+        for w in warnings:
+            print(f"  WARNING: {w}")
+    
+    if not is_valid:
+        print("Startup validation FAILED:")
+        for e in errors:
+            print(f"  ERROR: {e}")
+        raise RuntimeError("Startup validation failed - cannot proceed")
+    
+    print("Startup validation PASSED")
+
+    # Load canonical policy with validation gate
     gold_analysis_text = get_canonical_policy_text(
         csv_path=str(root / "train.csv"),
         gold_analysis_path=str(exp / "results/gold/gold_analysis.json"),
         policy_path=str(root / "config/ragset_label_policy.yaml")
     )
 
-    # Load model profiles from config/models.yaml
-    models_cfg = yaml_mod.safe_load(
-        (root / "config" / "models.yaml").read_text(encoding="utf-8")
-    )
-
     # Get profile lists from config (support both old single-profile and new multi-profile format)
     inf_profiles = cfg["models"].get("inference_profiles", [cfg["models"].get("inference_profile")])
     val_profiles = cfg["models"].get("validator_profiles", [cfg["models"].get("validator_profile")])
+    judge_profiles = cfg["models"].get("judge_profiles", [cfg["models"].get("judge_profile")])
 
-    if len(inf_profiles) != 2 or len(val_profiles) != 2:
+    if len(inf_profiles) != 2 or len(val_profiles) != 2 or len(judge_profiles) != 2:
         raise ValueError(
-            f"Expected 2 inference profiles and 2 validator profiles for parallel inference. "
-            f"Got {len(inf_profiles)} inference and {len(val_profiles)} validator profiles."
+            f"Expected 2 inference profiles, 2 validator profiles, and 2 judge profiles for parallel inference. "
+            f"Got {len(inf_profiles)} inference, {len(val_profiles)} validator, {len(judge_profiles)} judge profiles."
         )
 
     # Validate all profiles exist
-    for profile_name in inf_profiles + val_profiles:
+    for profile_name in inf_profiles + val_profiles + judge_profiles:
         if profile_name not in models_cfg.get("models", {}):
             raise ValueError(
                 f"Unknown profile '{profile_name}'. "
@@ -408,26 +632,33 @@ def main(limit: int | None = None, resume: bool = False, overwrite: bool = False
     # Load configurations for both workers
     inf_configs = [models_cfg["models"][p] for p in inf_profiles]
     val_configs = [models_cfg["models"][p] for p in val_profiles]
+    judge_configs = [models_cfg["models"][p] for p in judge_profiles]
 
     # Check for required API keys for both workers
-    for i, (inf_config, val_config) in enumerate(zip(inf_configs, val_configs)):
+    for i, (inf_config, val_config, judge_config) in enumerate(zip(inf_configs, val_configs, judge_configs)):
         inf_provider = inf_config.get("provider", "openrouter")
         val_provider = val_config.get("provider", "openrouter")
+        judge_provider = judge_config.get("provider", "openrouter")
         inf_api_key_env = inf_config.get("api_key_env", "OPENROUTER_API_KEY")
         val_api_key_env = val_config.get("api_key_env", "OPENROUTER_API_KEY")
+        judge_api_key_env = judge_config.get("api_key_env", "OPENROUTER_API_KEY")
 
         if not os.environ.get(inf_api_key_env):
             raise RuntimeError(f"{inf_api_key_env} is required for provider '{inf_provider}' (worker {i}).")
         if not os.environ.get(val_api_key_env):
             raise RuntimeError(f"{val_api_key_env} is required for provider '{val_provider}' (worker {i}).")
+        if not os.environ.get(judge_api_key_env):
+            raise RuntimeError(f"{judge_api_key_env} is required for provider '{judge_provider}' (worker {i}).")
 
-    # Create model pairs for both workers
-    model_pairs = []
-    for inf_config, val_config in zip(inf_configs, val_configs):
+    # Create model triples for both workers
+    model_triples = []
+    for inf_config, val_config, judge_config in zip(inf_configs, val_configs, judge_configs):
         inf_provider = inf_config.get("provider", "openrouter")
         val_provider = val_config.get("provider", "openrouter")
+        judge_provider = judge_config.get("provider", "openrouter")
         inf_api_key_env = inf_config.get("api_key_env", "OPENROUTER_API_KEY")
         val_api_key_env = val_config.get("api_key_env", "OPENROUTER_API_KEY")
+        judge_api_key_env = judge_config.get("api_key_env", "OPENROUTER_API_KEY")
 
         model1 = InferenceModel(
             inf_config["model"],
@@ -436,14 +667,21 @@ def main(limit: int | None = None, resume: bool = False, overwrite: bool = False
             api_key=os.environ.get(inf_api_key_env),
             reasoning=inf_config.get("parameters", {}).get("reasoning"),
         )
-        model2 = ValidatorModel(
+        model2 = CriticModel(
             val_config["model"],
             max_tokens=val_config.get("parameters", {}).get("max_output_tokens", 4000),
             provider=val_provider,
             api_key=os.environ.get(val_api_key_env),
             reasoning=val_config.get("parameters", {}).get("reasoning"),
         )
-        model_pairs.append((model1, model2))
+        model3 = JudgeModel(
+            judge_config["model"],
+            max_tokens=judge_config.get("parameters", {}).get("max_output_tokens", 8000),
+            provider=judge_provider,
+            api_key=os.environ.get(judge_api_key_env),
+            reasoning=judge_config.get("parameters", {}).get("reasoning"),
+        )
+        model_triples.append((model1, model2, model3))
 
     output_dir = root / cfg["runtime"].get("output_dir", "experiments/ragset_report_inference_experiment")
     result_path = output_dir / "results/inference/predictions.jsonl"
@@ -475,8 +713,8 @@ def main(limit: int | None = None, resume: bool = False, overwrite: bool = False
     if heldout_path.exists():
         heldout_df = load_train(heldout_path)
         run_heldout_evaluation(
-            heldout_df, gold, retriever, model_pairs[0][0], model_pairs[0][1],
-            inf_cfg, val_cfg, labels, cfg, trace_path,
+            heldout_df, gold, retriever, model_triples[0][0], model_triples[0][1], model_triples[0][2],
+            inf_cfg, val_cfg, judge_cfg, labels, cfg, trace_path,
         )
     else:
         print("No held-out set found. Run validate_agent.py first.")
@@ -549,13 +787,13 @@ def main(limit: int | None = None, resume: bool = False, overwrite: bool = False
     # Submit workers
     with ThreadPoolExecutor(max_workers=2) as executor:
         future_a = executor.submit(
-            worker_process_chunk, chunk_a, model_pairs[0][0], model_pairs[0][1],
-            inf_cfg, val_cfg, labels, gold_analysis_text,
+            worker_process_chunk, chunk_a, model_triples[0][0], model_triples[0][1], model_triples[0][2],
+            inf_cfg, val_cfg, judge_cfg, labels, gold_analysis_text,
             retriever, max_attempts, result_queue, 0
         )
         future_b = executor.submit(
-            worker_process_chunk, chunk_b, model_pairs[1][0], model_pairs[1][1],
-            inf_cfg, val_cfg, labels, gold_analysis_text,
+            worker_process_chunk, chunk_b, model_triples[1][0], model_triples[1][1], model_triples[1][2],
+            inf_cfg, val_cfg, judge_cfg, labels, gold_analysis_text,
             retriever, max_attempts, result_queue, 1
         )
 

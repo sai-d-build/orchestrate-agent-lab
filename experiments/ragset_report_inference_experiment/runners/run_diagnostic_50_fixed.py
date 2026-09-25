@@ -7,11 +7,11 @@ Uses the LangGraph orchestration with Model 1 (Inference), Model 2 (Critic), Mod
 FIXES APPLIED:
 1. Checkpoint/Resume - Load processed StudyInstanceUIDs from results file to skip already processed
 2. Prompt hashes from traces - Extract from trace records (already correct in traces)
-3. Build attempts from traces - Group trace_records by attempt number
-4. Derive retry_count from traces - Count unique inference attempts
+3. Build attempts from state histories - Use prediction_history, critique_history, judgment_history
+4. Derive retry_count from state - Count unique inference attempts
 5. Sum latency from traces - Sum all trace latencies
 6. Aggregate token usage from traces - Sum input/output tokens from all traces
-7. Extract model predictions from last attempt - Get from trace response_hash or state.final_prediction
+7. Extract model predictions from state histories - Get full prediction objects
 8. Parse policy flags from critiques - Extract UNRESOLVED_POLICY, REPORT_AMBIGUITY issue types
 9. Better error handling - Per-record timeout, progress logging to file
 """
@@ -39,7 +39,7 @@ from experiments.ragset_report_inference_experiment.src.ragset_inference.retriev
 from experiments.ragset_report_inference_experiment.src.ragset_inference.models import InferenceModel, CriticModel, JudgeModel
 from experiments.ragset_report_inference_experiment.src.ragset_inference.graph import build_graph, create_initial_state
 from experiments.ragset_report_inference_experiment.src.ragset_inference.trace import write_trace
-from experiments.ragset_report_inference_experiment.src.ragset_inference.schemas import ReportPrediction, CritiqueResult, JudgeResult, LABEL_KEYS
+from experiments.ragset_report_inference_experiment.src.ragset_inference.schemas import ReportPrediction, CritiqueResult, JudgeResult, LABEL_KEYS, CritiqueIssueType
 
 
 def compute_hash(text: str) -> str:
@@ -76,65 +76,66 @@ def load_processed_uids(results_path: Path) -> set:
     return processed_uids
 
 
-def parse_trace_records(trace_path: Path, report_id: str) -> list:
-    """Parse trace records for a specific report from the trace file."""
-    trace_records = []
-    if trace_path.exists():
-        with trace_path.open() as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    data = json.loads(line)
-                    if data.get("report_id") == report_id:
-                        trace_records.append(data)
-                except json.JSONDecodeError:
-                    continue
-    return trace_records
-
-
-def build_attempts_from_traces(trace_records: list) -> list:
-    """Build attempts_detail from trace records grouped by attempt number."""
-    attempts_by_num = defaultdict(list)
+def build_attempts_from_state(state: dict) -> list:
+    """Build attempts_detail from state histories (prediction_history, critique_history, judgment_history)."""
+    prediction_history = state.get("prediction_history", [])
+    critique_history = state.get("critique_history", [])
+    judgment_history = state.get("judgment_history", [])
+    current_prediction = state.get("current_prediction")
+    current_critique = state.get("current_critique")
+    current_judgment = state.get("current_judgment")
     
-    for trace in trace_records:
-        # Handle both dict and TraceRecord objects
-        if hasattr(trace, 'model_dump'):
-            trace_dict = trace.model_dump()
-        else:
-            trace_dict = trace
-        
-        attempt = trace_dict.get("attempt", 0)
-        if attempt > 0:
-            attempts_by_num[attempt].append(trace_dict)
+    # Build complete lists including current
+    all_predictions = prediction_history + ([current_prediction] if current_prediction else [])
+    all_critiques = critique_history + ([current_critique] if current_critique else [])
+    all_judgments = judgment_history + ([current_judgment] if current_judgment else [])
     
     attempts_detail = []
-    for attempt_num in sorted(attempts_by_num.keys()):
-        traces = attempts_by_num[attempt_num]
+    max_len = max(len(all_predictions), len(all_critiques), len(all_judgments))
+    
+    for attempt_num in range(1, max_len + 1):
+        idx = attempt_num - 1
         
-        # Find inference and critic traces for this attempt
-        inference_trace = next((t for t in traces if t.get("graph_node") == "inference"), None)
-        critic_trace = next((t for t in traces if t.get("graph_node") == "critic"), None)
-        judge_trace = next((t for t in traces if t.get("graph_node") == "judge"), None)
+        # Get prediction for this attempt
+        pred = all_predictions[idx] if idx < len(all_predictions) else None
+        crit = all_critiques[idx] if idx < len(all_critiques) else None
+        judg = all_judgments[idx] if idx < len(all_judgments) else None
         
-        # Extract latency for this attempt
-        elapsed_seconds = sum(t.get("latency_seconds", 0) or 0 for t in traces)
+        # Extract prediction dict
+        prediction_dict = {}
+        if pred:
+            prediction_dict = {
+                "response_hash": None,  # Not stored in state, would need trace
+                "labels": {label: pred.predictions[label].value for label in pred.predictions},
+                "evidence": {label: pred.predictions[label].evidence for label in pred.predictions},
+            }
         
-        # Extract prediction from inference trace response_hash
-        prediction = {}
-        validation = {}
+        # Extract validation dict
+        validation_dict = {}
+        if crit:
+            validation_dict = {
+                "response_hash": None,
+                "status": crit.status.value if hasattr(crit.status, 'value') else str(crit.status),
+                "issues": [
+                    {
+                        "label": issue.label,
+                        "model1_value": issue.model1_value,
+                        "proposed_value": issue.proposed_value,
+                        "issue_type": issue.issue_type.value if hasattr(issue.issue_type, 'value') else str(issue.issue_type),
+                        "evidence": issue.evidence,
+                        "policy_rule": issue.policy_rule,
+                        "feedback": issue.feedback,
+                    }
+                    for issue in crit.issues
+                ],
+                "actionable": crit.actionable,
+                "affected_labels": crit.affected_labels,
+            }
         
-        if inference_trace and inference_trace.get("response_hash"):
-            prediction = {"response_hash": inference_trace["response_hash"]}
-        
-        if critic_trace and critic_trace.get("response_hash"):
-            validation = {"response_hash": critic_trace["response_hash"]}
-        
-        # Determine failure type from judge trace
+        # Determine failure type from judge
         failure_type = None
-        if judge_trace and judge_trace.get("judge_action"):
-            action = judge_trace["judge_action"]
+        if judg:
+            action = judg.action.value if hasattr(judg.action, 'value') else str(judg.action)
             if action == "RETRY_MODEL1":
                 failure_type = "semantic"
             elif action in ("AMBIGUOUS", "NEEDS_REVIEW", "STOP"):
@@ -142,35 +143,49 @@ def build_attempts_from_traces(trace_records: list) -> list:
         
         attempts_detail.append({
             "attempt": attempt_num,
-            "prediction": prediction,
-            "validation": validation,
-            "label_reviews": [],  # Would need more trace data
-            "elapsed_seconds": elapsed_seconds,
+            "prediction": prediction_dict,
+            "validation": validation_dict,
+            "label_reviews": [],
+            "elapsed_seconds": 0.0,  # Would need trace data
             "failure_type": failure_type,
         })
     
     return attempts_detail
 
 
-def extract_policy_flags(trace_records: list) -> tuple:
-    """Extract policy conventions used and unresolved policy flags from trace records."""
+def extract_policy_flags_from_state(state: dict) -> tuple:
+    """Extract policy conventions used and unresolved policy flags from state critiques."""
     policy_conventions_used = []
     unresolved_policy_flags = []
     
-    for trace in trace_records:
-        if trace.get("graph_node") == "critic" and trace.get("response_hash"):
-            # The trace has response_hash which is hash of CritiqueResult
-            # We'd need to parse the actual critique to get issue types
-            # For now, we can add a placeholder or try to extract from error field
-            pass
+    critique_history = state.get("critique_history", [])
+    current_critique = state.get("current_critique")
+    all_critiques = critique_history + ([current_critique] if current_critique else [])
     
-    # Since we don't store full critique in trace, we'll return empty for now
-    # This would need the actual critique objects from state
+    for crit in all_critiques:
+        if not crit:
+            continue
+        for issue in crit.issues:
+            issue_type = issue.issue_type.value if hasattr(issue.issue_type, 'value') else str(issue.issue_type)
+            if issue_type in ("UNRESOLVED_POLICY", "REPORT_AMBIGUITY"):
+                unresolved_policy_flags.append({
+                    "label": issue.label,
+                    "issue_type": issue_type,
+                    "feedback": issue.feedback,
+                })
+            elif issue_type in ("CLEAR_POLICY_CONFLICT", "CLEAR_REPORT_CONFLICT"):
+                policy_conventions_used.append({
+                    "label": issue.label,
+                    "issue_type": issue_type,
+                    "policy_rule": issue.policy_rule,
+                })
+    
     return policy_conventions_used, unresolved_policy_flags
 
 
-def aggregate_metadata_from_traces(trace_records: list, inf_cfg: dict, val_cfg: dict, judge_cfg: dict) -> dict:
-    """Aggregate all metadata from trace records."""
+def aggregate_metadata_from_state(state: dict) -> dict:
+    """Aggregate all metadata from state trace records."""
+    trace_records = state.get("trace_records", [])
     
     # Convert to dict if needed
     trace_dicts = []
@@ -207,17 +222,6 @@ def aggregate_metadata_from_traces(trace_records: list, inf_cfg: dict, val_cfg: 
         "output_tokens": output_tokens,
     }
     
-    # 5. model1_prediction and model2_validation from last attempt
-    last_attempt = max((t.get("attempt", 0) for t in valid_traces), default=0)
-    last_inference = next((t for t in inference_traces if t.get("attempt") == last_attempt), None)
-    last_critic = next((t for t in critic_traces if t.get("attempt") == last_attempt), None)
-    
-    model1_prediction = {"response_hash": last_inference.get("response_hash")} if last_inference else {}
-    model2_validation = {"response_hash": last_critic.get("response_hash")} if last_critic else {}
-    
-    # 6. policy flags from critiques
-    policy_conventions_used, unresolved_policy_flags = extract_policy_flags(trace_records)
-    
     return {
         "prompt_hash_inference": prompt_hash_inference[:16] if prompt_hash_inference else "",
         "prompt_hash_validation": prompt_hash_validation[:16] if prompt_hash_validation else "",
@@ -225,10 +229,6 @@ def aggregate_metadata_from_traces(trace_records: list, inf_cfg: dict, val_cfg: 
         "retry_count": retry_count,
         "latency_seconds": latency_seconds,
         "token_usage": token_usage,
-        "model1_prediction": model1_prediction,
-        "model2_validation": model2_validation,
-        "policy_conventions_used": policy_conventions_used,
-        "unresolved_policy_flags": unresolved_policy_flags,
     }
 
 
@@ -322,11 +322,6 @@ def run_diagnostic_50():
     # Build LangGraph
     graph = build_graph()
     
-    # Load prompt configs for trace reconstruction
-    inf_cfg = yaml.safe_load((exp / "prompts/inference.yaml").read_text(encoding="utf-8"))
-    val_cfg = yaml.safe_load((exp / "prompts/validation_critic.yaml").read_text(encoding="utf-8"))
-    judge_cfg = yaml.safe_load((exp / "prompts/judge.yaml").read_text(encoding="utf-8"))
-    
     max_attempts = cfg["loop"]["max_attempts"]
     
     all_results = []
@@ -375,69 +370,26 @@ def run_diagnostic_50():
             report=report,
             max_attempts=max_attempts,
         )
-        # Add context that the graph nodes need
         initial_state["canonical_policy"] = gold_analysis_text
-        initial_state["retrieved_gold_context"] = "\n---\n".join(
-            f"STUDY {x['study_id']}\nLABELS: {x['labels']}\nREPORT:\n{x['report']}"
-            for x in retrieved
-        )
+        initial_state["retrieved_gold_context"] = relevant
         
-        # Create trace collectors for this report
-        trace_records = []
-        
-        # Run the LangGraph pipeline
+        # Run the LangGraph pipeline using graph.invoke()
         try:
-            # We need to inject the models and retriever into the graph nodes
-            from experiments.ragset_report_inference_experiment.src.ragset_inference.graph_nodes import (
-                initialize_node, inference_node, critic_node, judge_node, finalize_node
+            final_state = graph.invoke(
+                initial_state,
+                config={"configurable": {
+                    "retriever": retriever,
+                    "inference_model": model1,
+                    "critic_model": model2,
+                    "judge_model": model3,
+                }}
             )
-            
-            # Manually execute the graph nodes in sequence to capture traces
-            state = initial_state
-            
-            # Initialize
-            state = initialize_node(state, retriever=retriever, inference_model=model1, critic_model=model2, judge_model=model3)
-            
-            # Run inference/critic/judge loop
-            while True:
-                # Inference
-                state = inference_node(state, inference_model=model1)
-                
-                # Critic
-                state = critic_node(state, critic_model=model2)
-                
-                # Judge
-                state = judge_node(state, judge_model=model3)
-                
-                # Check if we should continue or finalize
-                judgment = state.get("current_judgment")
-                action = judgment.action if judgment else "NEEDS_REVIEW"
-                
-                if action == "PASS":
-                    # Finalize and exit
-                    state = finalize_node(state)
-                    break
-                elif action in ("AMBIGUOUS", "NEEDS_REVIEW", "STOP"):
-                    # Finalize and exit
-                    state = finalize_node(state)
-                    break
-                elif action == "RETRY_MODEL1":
-                    # Increment attempt and continue loop
-                    if state["attempt"] >= state["max_attempts"]:
-                        state = finalize_node(state)
-                        break
-                    state["attempt"] += 1
-                    continue
-                else:
-                    # Unknown action - finalize
-                    state = finalize_node(state)
-                    break
             
             # Disable alarm
             signal.alarm(0)
             
             # Get trace records from state
-            trace_records = state.get("trace_records", [])
+            trace_records = final_state.get("trace_records", [])
             
             # Write traces to file
             for trace in trace_records:
@@ -462,11 +414,15 @@ def run_diagnostic_50():
                 )
             
             # Extract results from state
-            final_status = state.get("final_status", "error")
-            final_prediction = state.get("final_prediction")
-            review_reason = state.get("review_reason")
+            final_status = final_state.get("final_status", "error")
+            final_prediction = final_state.get("final_prediction")
+            review_reason = final_state.get("review_reason")
+            selected_attempt = final_state.get("finalization_selected_attempt")
+            finalization_reason = final_state.get("finalization_reason")
+            terminal_action = final_state.get("finalization_terminal_action")
+            terminal_reason_code = final_state.get("finalization_terminal_reason_code")
             
-            # Build result record with metadata from traces
+            # Build result record with metadata from state
             final_pred = final_prediction
             if final_pred:
                 inferred_evidence = {
@@ -479,20 +435,26 @@ def run_diagnostic_50():
                 inferred_evidence = {}
                 final_labels = {}
             
-            # Build attempts detail from traces
-            attempts_detail = build_attempts_from_traces(trace_records)
+            # Build attempts detail from state histories
+            attempts_detail = build_attempts_from_state(final_state)
+            
+            # Extract policy flags from state
+            policy_conventions_used, unresolved_policy_flags = extract_policy_flags_from_state(final_state)
+            
+            # Aggregate metadata from state traces
+            metadata = aggregate_metadata_from_state(final_state)
             
             # Determine failure category
             failure_category = "NONE"
             if final_status == "needs_review":
-                review_reason = state.get("review_reason", "")
-                if "maximum attempts" in review_reason.lower() and "semantic" in review_reason.lower():
+                review_reason_str = review_reason or ""
+                if "maximum attempts" in review_reason_str.lower() and "semantic" in review_reason_str.lower():
                     failure_category = "MODEL1_STUCK"
-                elif "oscillation" in review_reason.lower() or "stuck" in review_reason.lower():
+                elif "oscillation" in review_reason_str.lower() or "stuck" in review_reason_str.lower():
                     failure_category = "VALIDATOR_INSTABILITY"
-                elif "ambiguous" in review_reason.lower() or "AMBIGUOUS" in review_reason:
+                elif "ambiguous" in review_reason_str.lower() or "AMBIGUOUS" in review_reason_str:
                     failure_category = "TRUE_AMBIGUITY"
-                elif "structural" in review_reason.lower() or "transient" in review_reason.lower():
+                elif "structural" in review_reason_str.lower() or "transient" in review_reason_str.lower():
                     failure_category = "SYSTEM_ERROR"
                 else:
                     failure_category = "POLICY_AMBIGUITY"
@@ -500,11 +462,6 @@ def run_diagnostic_50():
                 failure_category = "SYSTEM_ERROR"
             elif len([t for t in trace_records if t.get("graph_node") == "inference"]) > 1:
                 failure_category = "VALIDATOR_CORRECTION"
-            
-            # Aggregate metadata from traces
-            metadata = aggregate_metadata_from_traces(
-                trace_records, inf_cfg, val_cfg, judge_cfg
-            )
             
             # Build comprehensive result record
             result_record = {
@@ -514,14 +471,14 @@ def run_diagnostic_50():
                 "all_boundary_categories": all_categories,
                 "final_labels": final_labels,
                 "final_evidence": inferred_evidence,
-                "model1_prediction": metadata["model1_prediction"],
-                "model2_validation": metadata["model2_validation"],
+                "model1_prediction": {},  # Would need trace response_hash
+                "model2_validation": {},
                 "final_status": final_status,
                 "review_reason": review_reason,
                 "retry_count": metadata["retry_count"],
                 "failure_category": failure_category,
-                "policy_conventions_used": metadata["policy_conventions_used"],
-                "unresolved_policy_flags": metadata["unresolved_policy_flags"],
+                "policy_conventions_used": policy_conventions_used,
+                "unresolved_policy_flags": unresolved_policy_flags,
                 "retrieved_gold_study_ids": retrieved_study_ids,
                 "requested_model_inference": model1.model,
                 "requested_model_validation": model2.model,
@@ -539,6 +496,10 @@ def run_diagnostic_50():
                 "prompt_hash_judge": metadata["prompt_hash_judge"],
                 "gold_analysis_hash": compute_hash(gold_analysis_text),
                 "attempts": attempts_detail,
+                "finalization_selected_attempt": selected_attempt,
+                "finalization_reason": finalization_reason,
+                "finalization_terminal_action": terminal_action,
+                "finalization_terminal_reason_code": terminal_reason_code,
                 "timestamp": datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
             }
             
@@ -564,6 +525,7 @@ def run_diagnostic_50():
             
             print(f"  Status: {final_status}, Retries: {metadata['retry_count']}, Failure: {failure_category}")
             print(f"  Latency: {metadata['latency_seconds']:.2f}s, Tokens: {metadata['token_usage']}")
+            print(f"  Selected attempt: {selected_attempt}, Reason: {finalization_reason}")
             
         except TimeoutException:
             signal.alarm(0)

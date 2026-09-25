@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import Optional, Literal
 
 
-def prompt_hash(text: str) -> str:
+def compute_prompt_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def response_hash(text: str) -> str:
+def compute_response_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
@@ -20,7 +20,7 @@ def write_trace(
     stage: Literal["inference", "validation", "judgment"],
     model: str,
     attempt: int,
-    prompt: str,
+    prompt: str = "",
     status: Literal["success", "error"],
     latency_seconds: Optional[float] = None,
     input_tokens: Optional[int] = None,
@@ -32,6 +32,8 @@ def write_trace(
     graph_node: Optional[Literal["initialize", "inference", "critic", "judge", "finalize"]] = None,
     judge_action: Optional[str] = None,
     response_hash: Optional[str] = None,
+    timestamp_utc: Optional[str] = None,
+    provided_prompt_hash: Optional[str] = None,
 ):
     """Write a model usage trace record.
 
@@ -41,7 +43,7 @@ def write_trace(
         stage: "inference", "validation", or "judgment"
         model: Requested model name
         attempt: Attempt number (1-indexed)
-        prompt: Full prompt sent to model
+        prompt: Full prompt sent to model (optional if provided_prompt_hash provided)
         status: "success" or "error"
         latency_seconds: Response latency
         input_tokens: Input token count (if available)
@@ -52,16 +54,23 @@ def write_trace(
         graph_node: LangGraph node name ("initialize", "inference", "critic", "judge", "finalize")
         judge_action: Judge action (PASS, RETRY_MODEL1, AMBIGUOUS, NEEDS_REVIEW, STOP)
         response_hash: SHA256 hash of model response text
+        timestamp_utc: Optional timestamp (ISO format). If not provided, current time is used.
+        provided_prompt_hash: Optional pre-computed prompt hash. If not provided, computed from prompt.
     """
+    # Compute prompt_hash: use provided prompt_hash, or compute from prompt if available
+    computed_prompt_hash = provided_prompt_hash
+    if not computed_prompt_hash and prompt:
+        computed_prompt_hash = compute_prompt_hash(prompt)
+    
     record = {
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp_utc": timestamp_utc or datetime.now(timezone.utc).isoformat(),
         "report_id": report_id,
         "stage": stage,
         "requested_model": model,
         "actual_model": actual_model,
         "provider": provider,
         "attempt": attempt,
-        "prompt_hash": prompt_hash(prompt),
+        "prompt_hash": computed_prompt_hash,
         "response_hash": response_hash,
         "status": status,
         "latency_seconds": latency_seconds,

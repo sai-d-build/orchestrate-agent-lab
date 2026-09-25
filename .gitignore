@@ -24,7 +24,24 @@ htmlcov/
 
 # OS files
 .DS_Store
-tests/.DS_Store
-tests/.DS_Store
-core/.DS_Store
-experiments/ragset_report_inference_experiment/results/inference/model_trace.jsonl
+
+# Generated results and outputs
+results/**/*.json
+results/**/*.jsonl
+results/**/*.csv
+data/validation/*.csv
+
+# Backup and temporary files
+*_backup*.yaml
+*_bkp*.yaml
+*.bkp.*
+*.bak
+
+# Archives
+*.zip
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo

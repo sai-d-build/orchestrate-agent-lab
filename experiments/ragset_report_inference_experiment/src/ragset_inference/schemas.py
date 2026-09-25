@@ -56,12 +56,14 @@ class ValidationIssue(BaseModel):
     corrected: Literal[0, 1] | None = None
     reason: str
     evidence: list[str] = Field(default_factory=list)
+    schema_version: str = "1.0.0"
 
 
 class ValidationResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Literal["PASS", "FAIL", "AMBIGUOUS"]
     issues: list[ValidationIssue] = Field(default_factory=list)
+    schema_version: str = "1.0.0"
 
     @property
     def passed(self) -> bool:
@@ -105,6 +107,7 @@ class CritiqueResult(BaseModel):
     summary: str = ""
     actionable: bool = False
     affected_labels: list[str] = Field(default_factory=list)
+    schema_version: str = "1.0.0"
 
     @property
     def has_actionable_issues(self) -> bool:
@@ -138,6 +141,18 @@ class JudgeReasonCode(str, Enum):
     REPEATED_CRITIQUE = "REPEATED_CRITIQUE"
     MAX_ATTEMPTS = "MAX_ATTEMPTS"
     SYSTEM_ERROR = "SYSTEM_ERROR"
+    # Canonical finalization reason codes (aligned with judge prompt)
+    NO_EVIDENCE_AMBIGUOUS = "NO_EVIDENCE_AMBIGUOUS"
+    MODEL2_UNSUPPORTED_CORRECTION = "MODEL2_UNSUPPORTED_CORRECTION"
+    MODEL2_CONFLICT = "MODEL2_CONFLICT"
+    RESOLVED_CLEAR_CONFLICT = "RESOLVED_CLEAR_CONFLICT"
+    PRE_OSCILLATION_STABILITY = "PRE_OSCILLATION_STABILITY"
+    MODEL1_STUCK_RETAINED = "MODEL1_STUCK_RETAINED"
+    HISTORY_BASED_STABILITY = "HISTORY_BASED_STABILITY"
+    NO_EVIDENCE = "NO_EVIDENCE"
+    UNRESOLVED = "UNRESOLVED"
+    INTEGRITY_FAILURE = "INTEGRITY_FAILURE"
+    POLICY_UNRESOLVED = "POLICY_UNRESOLVED"
 
 
 class JudgeResult(BaseModel):
@@ -145,6 +160,7 @@ class JudgeResult(BaseModel):
     action: JudgeAction
     reason_code: JudgeReasonCode
     rationale: str = Field(max_length=500)
+    schema_version: str = "1.0.0"
     # No clinical labels, no corrected labels, no suggested labels, no clinical evidence
 
 
@@ -170,3 +186,7 @@ class TraceRecord(BaseModel):
     status: Literal["success", "error", "safety_gate_failure"]
     error: str | None = None
     judge_action: JudgeAction | None = None
+    schema_version: str = "1.0.0"
+    # Policy versioning for traceability
+    policy_hash: str | None = None
+    policy_version: str | None = None

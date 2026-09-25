@@ -1,7 +1,7 @@
 {
   "total_contradictions": 15,
-  "errors": 12,
-  "warnings": 3,
+  "errors": 0,
+  "warnings": 15,
   "labels": {
     "ACL": {
       "label": "ACL",
@@ -10,7 +10,7 @@
       "llm_positive": 24,
       "llm_negative": 37,
       "policy_positive": 24,
-      "policy_negative": 37,
+      "policy_negative": 34,
       "conventions": [
         {
           "pattern": "explicit ACL tear/rupture/sprain/injury",
@@ -26,7 +26,7 @@
           "pattern": "ACL intact/normal/preserved",
           "status": "SAFE_NEGATIVE",
           "supporting_count": 0,
-          "contradicting_count": 37,
+          "contradicting_count": 34,
           "example_uids": [
             "10170898615867673028696505248839028269",
             "10306159113324811538703788080836752052"
@@ -39,9 +39,9 @@
         }
       ],
       "contradictions": [
-        "Contradiction(label='ACL', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 24, 'neg': 34}, llm_value=None, policy_value={'pos': 24, 'neg': 37}, affected_rules=['count_verification'])"
+        "Contradiction(label='ACL', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='WARNING', message='LLM analysis differs from policy YAML', csv_value=None, llm_value={'pos': 24, 'neg': 37}, policy_value={'pos': 24, 'neg': 34}, affected_rules=['llm_policy_consistency'])"
       ],
-      "status": "CONTRADICTION"
+      "status": "UNRESOLVED"
     },
     "MCL": {
       "label": "MCL",
@@ -50,7 +50,7 @@
       "llm_positive": 9,
       "llm_negative": 52,
       "policy_positive": 9,
-      "policy_negative": 52,
+      "policy_negative": 49,
       "conventions": [
         {
           "pattern": "explicit MCL tear/rupture/sprain/partial tear/grade 2",
@@ -66,7 +66,7 @@
           "pattern": "MCL intact/normal/within normal limits/sin alteraciones",
           "status": "SAFE_NEGATIVE",
           "supporting_count": 0,
-          "contradicting_count": 52,
+          "contradicting_count": 49,
           "example_uids": [
             "10095687747295410396510538520594649149",
             "10170898615867673028696505248839028269"
@@ -84,10 +84,10 @@
         }
       ],
       "contradictions": [
-        "Contradiction(label='MCL', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 9, 'neg': 49}, llm_value=None, policy_value={'pos': 9, 'neg': 52}, affected_rules=['count_verification'])",
+        "Contradiction(label='MCL', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='WARNING', message='LLM analysis differs from policy YAML', csv_value=None, llm_value={'pos': 9, 'neg': 52}, policy_value={'pos': 9, 'neg': 49}, affected_rules=['llm_policy_consistency'])",
         "Contradiction(label='MCL', type=<ContradictionType.CONVENTION_CONFLICT: 'convention_conflict'>, severity='WARNING', message=\"Unresolved convention: Only 1 positive example with 'suspect grade 2'; no negative counterexamples\", csv_value=None, llm_value=None, policy_value={'pattern': 'suspect/possible MCL injury'}, affected_rules=['unresolved_convention'])"
       ],
-      "status": "CONTRADICTION"
+      "status": "UNRESOLVED"
     },
     "Medial_Meniscus": {
       "label": "Medial_Meniscus",
@@ -95,20 +95,20 @@
       "csv_negative": 32,
       "llm_positive": 27,
       "llm_negative": 34,
-      "policy_positive": 27,
-      "policy_negative": 34,
+      "policy_positive": 26,
+      "policy_negative": 32,
       "conventions": [
         {
           "pattern": "explicit medial meniscus tear/rupture/horizontal/vertical/radial/root/complex",
           "status": "SAFE_POSITIVE",
-          "supporting_count": 27,
+          "supporting_count": 26,
           "contradicting_count": 0
         },
         {
           "pattern": "explicit no-tear/normal/intact",
           "status": "SAFE_NEGATIVE",
           "supporting_count": 0,
-          "contradicting_count": 34
+          "contradicting_count": 32
         },
         {
           "pattern": "degenerative change/mucoid degeneration without explicit tear",
@@ -134,10 +134,10 @@
         }
       ],
       "contradictions": [
-        "Contradiction(label='Medial_Meniscus', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 26, 'neg': 32}, llm_value=None, policy_value={'pos': 27, 'neg': 34}, affected_rules=['count_verification'])",
+        "Contradiction(label='Medial_Meniscus', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='WARNING', message='LLM analysis differs from policy YAML', csv_value=None, llm_value={'pos': 27, 'neg': 34}, policy_value={'pos': 26, 'neg': 32}, affected_rules=['llm_policy_consistency'])",
         "Contradiction(label='Medial_Meniscus', type=<ContradictionType.CONVENTION_CONFLICT: 'convention_conflict'>, severity='WARNING', message='Unresolved convention: Insufficient gold examples with uncertainty language', csv_value=None, llm_value=None, policy_value={'pattern': 'suspected/possible/R-O tear'}, affected_rules=['unresolved_convention'])"
       ],
-      "status": "CONTRADICTION"
+      "status": "UNRESOLVED"
     },
     "Lateral_Meniscus": {
       "label": "Lateral_Meniscus",
@@ -145,20 +145,20 @@
       "csv_negative": 35,
       "llm_positive": 24,
       "llm_negative": 37,
-      "policy_positive": 24,
-      "policy_negative": 37,
+      "policy_positive": 23,
+      "policy_negative": 35,
       "conventions": [
         {
           "pattern": "explicit lateral meniscus tear/rupture/horizontal/vertical/radial/root/complex",
           "status": "SAFE_POSITIVE",
-          "supporting_count": 24,
+          "supporting_count": 23,
           "contradicting_count": 0
         },
         {
           "pattern": "explicit no-tear/normal/intact",
           "status": "SAFE_NEGATIVE",
           "supporting_count": 0,
-          "contradicting_count": 37
+          "contradicting_count": 35
         },
         {
           "pattern": "degenerative change/mucoid degeneration without explicit tear",
@@ -186,10 +186,10 @@
         }
       ],
       "contradictions": [
-        "Contradiction(label='Lateral_Meniscus', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 23, 'neg': 35}, llm_value=None, policy_value={'pos': 24, 'neg': 37}, affected_rules=['count_verification'])",
+        "Contradiction(label='Lateral_Meniscus', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='WARNING', message='LLM analysis differs from policy YAML', csv_value=None, llm_value={'pos': 24, 'neg': 37}, policy_value={'pos': 23, 'neg': 35}, affected_rules=['llm_policy_consistency'])",
         "Contradiction(label='Lateral_Meniscus', type=<ContradictionType.CONVENTION_CONFLICT: 'convention_conflict'>, severity='WARNING', message='Unresolved convention: Insufficient gold examples with uncertainty language', csv_value=None, llm_value=None, policy_value={'pattern': 'suspected/possible/R-O tear'}, affected_rules=['unresolved_convention'])"
       ],
-      "status": "CONTRADICTION"
+      "status": "UNRESOLVED"
     },
     "Medial_OA": {
       "label": "Medial_OA",
@@ -197,13 +197,13 @@
       "csv_negative": 43,
       "llm_positive": 16,
       "llm_negative": 45,
-      "policy_positive": 16,
-      "policy_negative": 45,
+      "policy_positive": 15,
+      "policy_negative": 43,
       "conventions": [
         {
           "pattern": "explicit medial compartment OA/osteoarthritis/chondrosis/chondrosis grade 3-4",
           "status": "SAFE_POSITIVE",
-          "supporting_count": 16,
+          "supporting_count": 15,
           "contradicting_count": 0
         },
         {
@@ -226,9 +226,9 @@
         }
       ],
       "contradictions": [
-        "Contradiction(label='Medial_OA', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 15, 'neg': 43}, llm_value=None, policy_value={'pos': 16, 'neg': 45}, affected_rules=['count_verification'])"
+        "Contradiction(label='Medial_OA', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='WARNING', message='LLM analysis differs from policy YAML', csv_value=None, llm_value={'pos': 16, 'neg': 45}, policy_value={'pos': 15, 'neg': 43}, affected_rules=['llm_policy_consistency'])"
       ],
-      "status": "CONTRADICTION"
+      "status": "UNRESOLVED"
     },
     "Lateral_OA": {
       "label": "Lateral_OA",
@@ -237,7 +237,7 @@
       "llm_positive": 11,
       "llm_negative": 50,
       "policy_positive": 11,
-      "policy_negative": 50,
+      "policy_negative": 47,
       "conventions": [
         {
           "pattern": "explicit lateral compartment OA/osteoarthritis/chondrosis",
@@ -265,9 +265,9 @@
         }
       ],
       "contradictions": [
-        "Contradiction(label='Lateral_OA', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 11, 'neg': 47}, llm_value=None, policy_value={'pos': 11, 'neg': 50}, affected_rules=['count_verification'])"
+        "Contradiction(label='Lateral_OA', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='WARNING', message='LLM analysis differs from policy YAML', csv_value=None, llm_value={'pos': 11, 'neg': 50}, policy_value={'pos': 11, 'neg': 47}, affected_rules=['llm_policy_consistency'])"
       ],
-      "status": "CONTRADICTION"
+      "status": "UNRESOLVED"
     },
     "PF_OA": {
       "label": "PF_OA",
@@ -275,13 +275,13 @@
       "csv_negative": 37,
       "llm_positive": 23,
       "llm_negative": 37,
-      "policy_positive": 23,
+      "policy_positive": 21,
       "policy_negative": 37,
       "conventions": [
         {
           "pattern": "explicit patellofemoral OA/osteoarthritis/chondrosis",
           "status": "SAFE_POSITIVE",
-          "supporting_count": 23,
+          "supporting_count": 21,
           "contradicting_count": 0
         },
         {
@@ -304,9 +304,9 @@
         }
       ],
       "contradictions": [
-        "Contradiction(label='PF_OA', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 21, 'neg': 37}, llm_value=None, policy_value={'pos': 23, 'neg': 37}, affected_rules=['count_verification'])"
+        "Contradiction(label='PF_OA', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='WARNING', message='LLM analysis differs from policy YAML', csv_value=None, llm_value={'pos': 23, 'neg': 37}, policy_value={'pos': 21, 'neg': 37}, affected_rules=['llm_policy_consistency'])"
       ],
-      "status": "CONTRADICTION"
+      "status": "UNRESOLVED"
     },
     "Effusion": {
       "label": "Effusion",
@@ -314,32 +314,32 @@
       "csv_negative": 23,
       "llm_positive": 36,
       "llm_negative": 24,
-      "policy_positive": 36,
-      "policy_negative": 24,
+      "policy_positive": 35,
+      "policy_negative": 23,
       "conventions": [
         {
           "pattern": "explicit joint effusion/joint fluid/effusion",
           "status": "SAFE_POSITIVE",
-          "supporting_count": 36,
+          "supporting_count": 35,
           "contradicting_count": 0
         },
         {
           "pattern": "minimal/trace/small effusion",
           "status": "SAFE_POSITIVE",
-          "supporting_count": 36,
+          "supporting_count": 35,
           "contradicting_count": 0
         },
         {
           "pattern": "no effusion",
           "status": "SAFE_NEGATIVE",
           "supporting_count": 0,
-          "contradicting_count": 24
+          "contradicting_count": 23
         }
       ],
       "contradictions": [
-        "Contradiction(label='Effusion', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 35, 'neg': 23}, llm_value=None, policy_value={'pos': 36, 'neg': 24}, affected_rules=['count_verification'])"
+        "Contradiction(label='Effusion', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='WARNING', message='LLM analysis differs from policy YAML', csv_value=None, llm_value={'pos': 36, 'neg': 24}, policy_value={'pos': 35, 'neg': 23}, affected_rules=['llm_policy_consistency'])"
       ],
-      "status": "CONTRADICTION"
+      "status": "UNRESOLVED"
     },
     "Synovitis": {
       "label": "Synovitis",
@@ -347,20 +347,20 @@
       "csv_negative": 31,
       "llm_positive": 28,
       "llm_negative": 32,
-      "policy_positive": 28,
-      "policy_negative": 32,
+      "policy_positive": 27,
+      "policy_negative": 31,
       "conventions": [
         {
           "pattern": "explicit synovitis/synovial hypertrophy/thickening",
           "status": "SAFE_POSITIVE",
-          "supporting_count": 28,
+          "supporting_count": 27,
           "contradicting_count": 0
         },
         {
           "pattern": "effusion alone without explicit synovitis",
           "status": "SAFE_NEGATIVE",
           "supporting_count": 0,
-          "contradicting_count": 32
+          "contradicting_count": 31
         },
         {
           "pattern": "Baker's cyst fluid alone",
@@ -369,9 +369,9 @@
         }
       ],
       "contradictions": [
-        "Contradiction(label='Synovitis', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 27, 'neg': 31}, llm_value=None, policy_value={'pos': 28, 'neg': 32}, affected_rules=['count_verification'])"
+        "Contradiction(label='Synovitis', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='WARNING', message='LLM analysis differs from policy YAML', csv_value=None, llm_value={'pos': 28, 'neg': 32}, policy_value={'pos': 27, 'neg': 31}, affected_rules=['llm_policy_consistency'])"
       ],
-      "status": "CONTRADICTION"
+      "status": "UNRESOLVED"
     },
     "Bakers": {
       "label": "Bakers",
@@ -380,7 +380,7 @@
       "llm_positive": 12,
       "llm_negative": 48,
       "policy_positive": 12,
-      "policy_negative": 48,
+      "policy_negative": 46,
       "conventions": [
         {
           "pattern": "explicit Baker's/Becker/popliteal cyst",
@@ -392,13 +392,13 @@
           "pattern": "other cysts (ganglion, suprapatellar, infrapatellar bursitis)",
           "status": "SAFE_NEGATIVE",
           "supporting_count": 0,
-          "contradicting_count": 48
+          "contradicting_count": 46
         }
       ],
       "contradictions": [
-        "Contradiction(label='Bakers', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 12, 'neg': 46}, llm_value=None, policy_value={'pos': 12, 'neg': 48}, affected_rules=['count_verification'])"
+        "Contradiction(label='Bakers', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='WARNING', message='LLM analysis differs from policy YAML', csv_value=None, llm_value={'pos': 12, 'neg': 48}, policy_value={'pos': 12, 'neg': 46}, affected_rules=['llm_policy_consistency'])"
       ],
-      "status": "CONTRADICTION"
+      "status": "UNRESOLVED"
     },
     "Contusion": {
       "label": "Contusion",
@@ -407,7 +407,7 @@
       "llm_positive": 19,
       "llm_negative": 41,
       "policy_positive": 19,
-      "policy_negative": 41,
+      "policy_negative": 39,
       "conventions": [
         {
           "pattern": "explicit bone contusion/bone bruise/bone infarct",
@@ -419,7 +419,7 @@
           "pattern": "bone marrow edema/subchondral edema/osteochondral edema without explicit contusion",
           "status": "SAFE_NEGATIVE",
           "supporting_count": 0,
-          "contradicting_count": 41
+          "contradicting_count": 39
         },
         {
           "pattern": "chronic osteochondral/subchondral edema",
@@ -428,9 +428,9 @@
         }
       ],
       "contradictions": [
-        "Contradiction(label='Contusion', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 19, 'neg': 39}, llm_value=None, policy_value={'pos': 19, 'neg': 41}, affected_rules=['count_verification'])"
+        "Contradiction(label='Contusion', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='WARNING', message='LLM analysis differs from policy YAML', csv_value=None, llm_value={'pos': 19, 'neg': 41}, policy_value={'pos': 19, 'neg': 39}, affected_rules=['llm_policy_consistency'])"
       ],
-      "status": "CONTRADICTION"
+      "status": "UNRESOLVED"
     },
     "Fracture": {
       "label": "Fracture",
@@ -439,7 +439,7 @@
       "llm_positive": 18,
       "llm_negative": 42,
       "policy_positive": 18,
-      "policy_negative": 42,
+      "policy_negative": 40,
       "conventions": [
         {
           "pattern": "explicit fracture/avulsion fracture",
@@ -451,7 +451,7 @@
           "pattern": "bone marrow edema alone",
           "status": "SAFE_NEGATIVE",
           "supporting_count": 0,
-          "contradicting_count": 42
+          "contradicting_count": 40
         },
         {
           "pattern": "generic bone abnormality",
@@ -460,226 +460,226 @@
         }
       ],
       "contradictions": [
-        "Contradiction(label='Fracture', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='ERROR', message='Policy counts differ from CSV ground truth', csv_value={'pos': 18, 'neg': 40}, llm_value=None, policy_value={'pos': 18, 'neg': 42}, affected_rules=['count_verification'])"
+        "Contradiction(label='Fracture', type=<ContradictionType.COUNT_MISMATCH: 'count_mismatch'>, severity='WARNING', message='LLM analysis differs from policy YAML', csv_value=None, llm_value={'pos': 18, 'neg': 42}, policy_value={'pos': 18, 'neg': 40}, affected_rules=['llm_policy_consistency'])"
       ],
-      "status": "CONTRADICTION"
+      "status": "UNRESOLVED"
     }
   },
   "contradictions": [
     {
       "label": "ACL",
       "type": "ContradictionType.COUNT_MISMATCH",
-      "severity": "ERROR",
-      "message": "Policy counts differ from CSV ground truth",
-      "csv_value": {
-        "pos": 24,
-        "neg": 34
-      },
-      "llm_value": null,
-      "policy_value": {
+      "severity": "WARNING",
+      "message": "LLM analysis differs from policy YAML",
+      "csv_value": null,
+      "llm_value": {
         "pos": 24,
         "neg": 37
       },
+      "policy_value": {
+        "pos": 24,
+        "neg": 34
+      },
       "affected_rules": [
-        "count_verification"
+        "llm_policy_consistency"
       ]
     },
     {
       "label": "MCL",
       "type": "ContradictionType.COUNT_MISMATCH",
-      "severity": "ERROR",
-      "message": "Policy counts differ from CSV ground truth",
-      "csv_value": {
-        "pos": 9,
-        "neg": 49
-      },
-      "llm_value": null,
-      "policy_value": {
+      "severity": "WARNING",
+      "message": "LLM analysis differs from policy YAML",
+      "csv_value": null,
+      "llm_value": {
         "pos": 9,
         "neg": 52
       },
+      "policy_value": {
+        "pos": 9,
+        "neg": 49
+      },
       "affected_rules": [
-        "count_verification"
+        "llm_policy_consistency"
       ]
     },
     {
       "label": "Medial_Meniscus",
       "type": "ContradictionType.COUNT_MISMATCH",
-      "severity": "ERROR",
-      "message": "Policy counts differ from CSV ground truth",
-      "csv_value": {
-        "pos": 26,
-        "neg": 32
-      },
-      "llm_value": null,
-      "policy_value": {
+      "severity": "WARNING",
+      "message": "LLM analysis differs from policy YAML",
+      "csv_value": null,
+      "llm_value": {
         "pos": 27,
         "neg": 34
       },
+      "policy_value": {
+        "pos": 26,
+        "neg": 32
+      },
       "affected_rules": [
-        "count_verification"
+        "llm_policy_consistency"
       ]
     },
     {
       "label": "Lateral_Meniscus",
       "type": "ContradictionType.COUNT_MISMATCH",
-      "severity": "ERROR",
-      "message": "Policy counts differ from CSV ground truth",
-      "csv_value": {
-        "pos": 23,
-        "neg": 35
-      },
-      "llm_value": null,
-      "policy_value": {
+      "severity": "WARNING",
+      "message": "LLM analysis differs from policy YAML",
+      "csv_value": null,
+      "llm_value": {
         "pos": 24,
         "neg": 37
       },
+      "policy_value": {
+        "pos": 23,
+        "neg": 35
+      },
       "affected_rules": [
-        "count_verification"
+        "llm_policy_consistency"
       ]
     },
     {
       "label": "Medial_OA",
       "type": "ContradictionType.COUNT_MISMATCH",
-      "severity": "ERROR",
-      "message": "Policy counts differ from CSV ground truth",
-      "csv_value": {
-        "pos": 15,
-        "neg": 43
-      },
-      "llm_value": null,
-      "policy_value": {
+      "severity": "WARNING",
+      "message": "LLM analysis differs from policy YAML",
+      "csv_value": null,
+      "llm_value": {
         "pos": 16,
         "neg": 45
       },
+      "policy_value": {
+        "pos": 15,
+        "neg": 43
+      },
       "affected_rules": [
-        "count_verification"
+        "llm_policy_consistency"
       ]
     },
     {
       "label": "Lateral_OA",
       "type": "ContradictionType.COUNT_MISMATCH",
-      "severity": "ERROR",
-      "message": "Policy counts differ from CSV ground truth",
-      "csv_value": {
-        "pos": 11,
-        "neg": 47
-      },
-      "llm_value": null,
-      "policy_value": {
+      "severity": "WARNING",
+      "message": "LLM analysis differs from policy YAML",
+      "csv_value": null,
+      "llm_value": {
         "pos": 11,
         "neg": 50
       },
+      "policy_value": {
+        "pos": 11,
+        "neg": 47
+      },
       "affected_rules": [
-        "count_verification"
+        "llm_policy_consistency"
       ]
     },
     {
       "label": "PF_OA",
       "type": "ContradictionType.COUNT_MISMATCH",
-      "severity": "ERROR",
-      "message": "Policy counts differ from CSV ground truth",
-      "csv_value": {
-        "pos": 21,
-        "neg": 37
-      },
-      "llm_value": null,
-      "policy_value": {
+      "severity": "WARNING",
+      "message": "LLM analysis differs from policy YAML",
+      "csv_value": null,
+      "llm_value": {
         "pos": 23,
         "neg": 37
       },
+      "policy_value": {
+        "pos": 21,
+        "neg": 37
+      },
       "affected_rules": [
-        "count_verification"
+        "llm_policy_consistency"
       ]
     },
     {
       "label": "Effusion",
       "type": "ContradictionType.COUNT_MISMATCH",
-      "severity": "ERROR",
-      "message": "Policy counts differ from CSV ground truth",
-      "csv_value": {
-        "pos": 35,
-        "neg": 23
-      },
-      "llm_value": null,
-      "policy_value": {
+      "severity": "WARNING",
+      "message": "LLM analysis differs from policy YAML",
+      "csv_value": null,
+      "llm_value": {
         "pos": 36,
         "neg": 24
       },
+      "policy_value": {
+        "pos": 35,
+        "neg": 23
+      },
       "affected_rules": [
-        "count_verification"
+        "llm_policy_consistency"
       ]
     },
     {
       "label": "Synovitis",
       "type": "ContradictionType.COUNT_MISMATCH",
-      "severity": "ERROR",
-      "message": "Policy counts differ from CSV ground truth",
-      "csv_value": {
-        "pos": 27,
-        "neg": 31
-      },
-      "llm_value": null,
-      "policy_value": {
+      "severity": "WARNING",
+      "message": "LLM analysis differs from policy YAML",
+      "csv_value": null,
+      "llm_value": {
         "pos": 28,
         "neg": 32
       },
+      "policy_value": {
+        "pos": 27,
+        "neg": 31
+      },
       "affected_rules": [
-        "count_verification"
+        "llm_policy_consistency"
       ]
     },
     {
       "label": "Bakers",
       "type": "ContradictionType.COUNT_MISMATCH",
-      "severity": "ERROR",
-      "message": "Policy counts differ from CSV ground truth",
-      "csv_value": {
-        "pos": 12,
-        "neg": 46
-      },
-      "llm_value": null,
-      "policy_value": {
+      "severity": "WARNING",
+      "message": "LLM analysis differs from policy YAML",
+      "csv_value": null,
+      "llm_value": {
         "pos": 12,
         "neg": 48
       },
+      "policy_value": {
+        "pos": 12,
+        "neg": 46
+      },
       "affected_rules": [
-        "count_verification"
+        "llm_policy_consistency"
       ]
     },
     {
       "label": "Contusion",
       "type": "ContradictionType.COUNT_MISMATCH",
-      "severity": "ERROR",
-      "message": "Policy counts differ from CSV ground truth",
-      "csv_value": {
-        "pos": 19,
-        "neg": 39
-      },
-      "llm_value": null,
-      "policy_value": {
+      "severity": "WARNING",
+      "message": "LLM analysis differs from policy YAML",
+      "csv_value": null,
+      "llm_value": {
         "pos": 19,
         "neg": 41
       },
+      "policy_value": {
+        "pos": 19,
+        "neg": 39
+      },
       "affected_rules": [
-        "count_verification"
+        "llm_policy_consistency"
       ]
     },
     {
       "label": "Fracture",
       "type": "ContradictionType.COUNT_MISMATCH",
-      "severity": "ERROR",
-      "message": "Policy counts differ from CSV ground truth",
-      "csv_value": {
-        "pos": 18,
-        "neg": 40
-      },
-      "llm_value": null,
-      "policy_value": {
+      "severity": "WARNING",
+      "message": "LLM analysis differs from policy YAML",
+      "csv_value": null,
+      "llm_value": {
         "pos": 18,
         "neg": 42
       },
+      "policy_value": {
+        "pos": 18,
+        "neg": 40
+      },
       "affected_rules": [
-        "count_verification"
+        "llm_policy_consistency"
       ]
     },
     {
